@@ -1,1 +1,69 @@
-Placeholder
+COCO Notice for the COCO PottedPlant Subset
+===========================================
+
+This repository contains a COCO-derived subset used in the
+Object-Centric Low-Data Datasets collection.
+
+Important:
+- This repository does NOT redistribute original MS-COCO image files.
+- This repository does NOT assume blanket redistribution rights for all
+  cropped image patches derived from COCO images.
+- This subset is released here primarily in metadata / reconstruction-first form.
+
+What may be included here:
+- annotations created or reformatted by the authors
+- split files
+- manifests
+- metadata
+- checksums
+- code and reconstruction / preparation scripts
+- documentation and usage notes
+
+What is NOT included here by default:
+- original MS-COCO image files
+- a bulk packaged release of cropped COCO-derived image patches
+- any public image release that assumes one blanket redistribution right for
+  all included source images
+
+Why:
+The COCO annotations are publicly licensed by the COCO Consortium, but the
+COCO Consortium does not own the copyright of the images. Use of the images
+must follow the Flickr Terms of Use and the rights attached to the underlying
+source images.
+
+Because Flickr supports multiple license types (including All Rights Reserved
+and multiple Creative Commons variants), redistribution rights for COCO-derived
+image crops cannot be assumed uniformly across all images without checking the
+rights of the underlying source files.
+
+User responsibility:
+Anyone using the COCO PottedPlant subset must obtain the upstream COCO images
+from the official source and comply with the original image rights and terms
+that apply to those files. This repository does not grant any rights to the
+underlying image data.
+
+If a future version of this repository includes direct release of any COCO-derived
+image crops, those files must first be cleared for redistribution under the
+relevant upstream image rights.
+
+Annotations and metadata:
+Annotations, manifests, split files, metadata, and related code released by the
+authors may be distributed separately from the image files, subject to the
+license stated for those repository artifacts.
+
+Citation:
+Any work using the COCO-derived subset should also cite the official MS-COCO
+publication.
+
+Suggested citation:
+T.-Y. Lin, M. Maire, S. Belongie, J. Hays, P. Perona, D. Ramanan,
+P. Dollár, and C. L. Zitnick,
+"Microsoft COCO: Common Objects in Context,"
+ECCV, 2014.
+
+Official source:
+Please consult the official COCO documentation and the applicable Flickr terms
+for the authoritative conditions of use.
+
+This file is a repository notice only. It is not a substitute for the official
+upstream terms and does not constitute legal advice.
