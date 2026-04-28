@@ -1,1 +1,61 @@
-Placeholder
+Cityscapes Notice for the Cityscapes--Pedestrian Subset
+=======================================================
+
+This repository contains a Cityscapes-derived subset used in the
+Object-Centric Low-Data Datasets collection.
+
+Important:
+- This repository does NOT redistribute Cityscapes image files.
+- This repository does NOT redistribute cropped image patches derived from
+  Cityscapes frames.
+- This subset is released here only in abstract / non-image form.
+
+What may be included here:
+- annotations created by the authors
+- split files
+- manifests
+- metadata
+- checksums
+- code and preparation / reconstruction scripts
+- documentation and usage notes
+
+What is NOT included here:
+- original Cityscapes images
+- cropped pedestrian image patches
+- thumbnails, previews, or other image exports derived from Cityscapes data
+- any artifact intended to substitute for the Cityscapes dataset itself
+
+Why:
+Cityscapes permits use and processing of the dataset for scientific purposes,
+but the official terms do not allow redistribution of the dataset or modified
+versions of it. The terms allow derivative works to be distributed only when
+they are abstract representations that do not directly include Cityscapes data
+and do not allow recovery of the dataset or something similar in character.
+
+User responsibility:
+Anyone using the Cityscapes--Pedestrian subset must obtain access to the
+original Cityscapes dataset from the official source and comply with the
+official Cityscapes terms of use. This repository does not grant any rights
+to the underlying Cityscapes image data.
+
+Non-commercial use:
+Any use of the underlying Cityscapes data remains subject to the Cityscapes
+non-commercial / scientific-use conditions.
+
+Citation:
+Any work using the Cityscapes-derived subset should also cite the official
+Cityscapes publication and/or the official Cityscapes website, as required
+by the upstream terms.
+
+Suggested citation:
+M. Cordts, M. Omran, S. Ramos, T. Rehfeld, M. Enzweiler, R. Benenson,
+U. Franke, S. Roth, and B. Schiele,
+"The Cityscapes Dataset for Semantic Urban Scene Understanding,"
+Proc. CVPR, 2016.
+
+Official source:
+Please consult the official Cityscapes website and license terms for the
+authoritative conditions of use.
+
+This file is a repository notice only. It is not a substitute for the official
+Cityscapes terms and does not constitute legal advice.
