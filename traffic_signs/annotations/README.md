@@ -1,10 +1,16 @@
-# TrafficSigns Annotations
+# Traffic Signs Annotations
 
-This folder contains bounding-box annotations for the TrafficSigns subset.
+This folder contains bounding-box annotations for the Traffic Signs subset.
 
 ## Class mapping
 
-The subset uses one merged class:
+This subset uses one merged target class.
+
+If your current `classes.txt` file contains:
+
+`TrafficSigns`
+
+then the class mapping is:
 
 - `0` → `TrafficSigns`
 
@@ -12,7 +18,7 @@ The subset uses one merged class:
 
 The primary release format is YOLO text annotation format.
 
-Each image has a corresponding label file in:
+Each image should have a corresponding label file in:
 
 - `annotations/yolo/`
 
@@ -38,4 +44,12 @@ Example:
 
 ## Notes
 
-Most TrafficSigns samples are expected to contain a single clearly isolated object, but the format supports multiple lines per image if needed.
+Most Traffic Signs samples are expected to contain a single clearly isolated object, but the format supports multiple lines per image if needed.
+
+The canonical subset metadata remains in:
+
+- `../metadata/traffic_signs_manifest.csv`
+
+The class definition remains in:
+
+- `classes.txt`
