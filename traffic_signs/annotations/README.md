@@ -1,12 +1,12 @@
-# Traffic Signs Annotations
+# TrafficSigns Annotations
 
-This folder contains bounding-box annotations for the Traffic Signs subset.
+This folder contains bounding-box annotations for the TrafficSigns subset.
 
 ## Class mapping
 
 The subset uses one merged class:
 
-- `0` → `traffic_sign`
+- `0` → `TrafficSigns`
 
 ## Annotation format
 
@@ -38,4 +38,4 @@ Example:
 
 ## Notes
 
-Most Traffic Signs samples are expected to contain a single clearly isolated object, but the format supports multiple lines per image if needed.
+Most TrafficSigns samples are expected to contain a single clearly isolated object, but the format supports multiple lines per image if needed.
