@@ -1,1 +1,1 @@
-sample_id,image_relpath,annotation_relpath,mask_relpath,split,class_id,class_name,source_image_id,source_width,source_height,crop_x,crop_y,crop_width,crop_height,bbox_x_in_crop,bbox_y_in_crop,bbox_width,bbox_height,original_label,detector_name,detector_confidence,notes
+sample_id,image_relpath,annotation_relpath,mask_relpath,split,class_id,class_name,num_boxes,image_width,image_height,annotation_format,notes
