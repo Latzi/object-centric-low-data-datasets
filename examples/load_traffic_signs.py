@@ -1,11 +1,14 @@
 from pathlib import Path
+import sys
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO_ROOT))
 
 from loaders.traffic_signs import TrafficSignsDataset
 
 
 def main() -> None:
-    repo_root = Path(__file__).resolve().parents[1]
-    dataset = TrafficSignsDataset(repo_root)
+    dataset = TrafficSignsDataset(REPO_ROOT)
 
     print("TrafficSigns dataset loaded successfully")
     print(dataset.summary())
