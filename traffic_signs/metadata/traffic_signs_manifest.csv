@@ -1,5 +1,1 @@
 sample_id,image_relpath,annotation_relpath,mask_relpath,split,class_id,class_name,num_boxes,released_width,released_height,annotation_format,notes
-2022-04-07T06.03.45.frame1_183_86_2,images/2022-04-07T06.03.45.frame1_183_86_2.jpg,annotations/2022-04-07T06.03.45.frame1_183_86_2.txt,,unassigned,0,TrafficSigns,2,256,256,YOLO,"Two traffic signs in released crop"
-2022-04-07T09.15.48.frame11_0_6_2,images/2022-04-07T09.15.48.frame11_0_6_2.jpg,annotations/2022-04-07T09.15.48.frame11_0_6_2.txt,,unassigned,0,TrafficSigns,1,256,256,YOLO,"One traffic sign in released crop"
-2022-04-07T09.15.51.frame1_182_139_1,images/2022-04-07T09.15.51.frame1_182_139_1.jpg,annotations/2022-04-07T09.15.51.frame1_182_139_1.txt,,unassigned,0,TrafficSigns,1,256,256,YOLO,"One traffic sign in released crop"
-
