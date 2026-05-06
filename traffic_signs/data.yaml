@@ -1,0 +1,7 @@
+path: Train_Data
+train: images/train
+val: images/val
+test: test/images
+
+names:
+  0: TrafficSigns
