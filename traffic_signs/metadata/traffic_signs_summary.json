@@ -1,0 +1,22 @@
+{
+    "subset_name":  "TrafficSigns",
+    "release_mode":  "direct",
+    "class_map":  {
+                      "0":  "TrafficSigns"
+                  },
+    "target_size":  [
+                        256,
+                        256
+                    ],
+    "annotation_format":  "YOLO",
+    "total_images":  3009,
+    "split_counts":  {
+                         "train":  2256,
+                         "val":  451,
+                         "test":  302
+                     },
+    "dataset_root":  "Train_Data",
+    "yolo_config":  "../data.yaml",
+    "manifest_file":  "traffic_signs_manifest.csv",
+    "notes":  "Direct-release subset with final 256x256 crop images and YOLO annotations."
+}
