@@ -1,21 +1,17 @@
 # TrafficSigns Annotations
 
-This folder contains the YOLO-format bounding-box annotations for the **TrafficSigns** subset.
+This folder contains the annotation-level documentation for the **TrafficSigns** subset.
 
-## Overview
+## What is stored here
 
-Each released image in the TrafficSigns subset has a corresponding annotation file with the **same base filename** and a `.txt` extension.
+This folder stores:
 
-Example:
-
-- image: `2022-04-07T06.03.45.frame1_183_86_2.jpg`
-- annotation: `2022-04-07T06.03.45.frame1_183_86_2.txt`
-
-The annotation files are stored directly in this folder.
+- `classes.txt` — the class mapping for the subset
+- this `README.md` file — documentation for the annotation format and layout
 
 ## Class mapping
 
-This subset uses one merged target class:
+The subset uses one merged target class:
 
 - `0` → `TrafficSigns`
 
@@ -23,11 +19,28 @@ The class definition is stored in:
 
 - `classes.txt`
 
-## Annotation format
+## Where the actual YOLO label files are
 
-Annotations use standard **YOLO bounding-box format**.
+The canonical released YOLO label files are stored under the `Train_Data/` directory, not in this folder.
 
-Each line in a `.txt` file has the form:
+They are located in:
+
+- `../Train_Data/labels/train/`
+- `../Train_Data/labels/val/`
+- `../Train_Data/test/labels/`
+
+Each label file has the same base filename as its corresponding image.
+
+Example:
+
+- image: `../Train_Data/images/train/2022-04-07T06.03.45.frame1_183_86_2.jpg`
+- label: `../Train_Data/labels/train/2022-04-07T06.03.45.frame1_183_86_2.txt`
+
+## YOLO annotation format
+
+Annotations use standard YOLO bounding-box format.
+
+Each line in a label file has the form:
 
 `class_id x_center y_center width height`
 
@@ -41,14 +54,8 @@ where:
 
 All coordinates are normalized to the image size and lie in `[0, 1]`.
 
-## Example
+## Notes
 
-For the image:
-
-`2022-04-07T06.03.45.frame1_183_86_2.jpg`
-
-the corresponding annotation file may contain:
-
-```text
-0 0.650391 0.837891 0.378906 0.261719
-0 0.671875 0.468750 0.476562 0.507812
+- Most TrafficSigns images contain one clearly visible object, but some contain multiple annotated traffic signs.
+- The metadata manifest in `../metadata/traffic_signs_manifest.csv` records the released image path, matching label path, split membership, and number of boxes per image.
+- The canonical split definition is documented in `../splits/README.md`.
