@@ -1,0 +1,90 @@
+{
+  "subset_name": "Cityscapes--Pedestrian",
+  "public_standardized_class_name": "pedestrian",
+  "script_default_single_class_name": "person",
+  "release_mode": "abstract_non_image",
+  "pipeline_order": [
+    "01_create_crops_from_cityscapes_with_bb.py",
+    "02_filter_cropped_images.py",
+    "03_create_yolo_annotations_from_filtered.py",
+    "04_draw_yolo_bb_debug.py"
+  ],
+  "raw_inputs": {
+    "images_root_name": "leftImg8bit_blurred",
+    "citypersons_bbox_root_name": "gtBboxCityPersons",
+    "gtcoarse_root_name": "gtCoarse"
+  },
+  "stage_01_create_crops": {
+    "target_crop_size": [256, 256],
+    "num_candidate_crops_per_image": 4,
+    "desired_num_crops_per_base_image": 4,
+    "final_dataset_size_target": 3300,
+    "priority_person_heavy_crops": 1600,
+    "person_like_labels": [
+      "pedestrian",
+      "sitting person",
+      "person group",
+      "person (other)",
+      "rider",
+      "person",
+      "persongroup",
+      "ridergroup"
+    ],
+    "person_group_labels": [
+      "person group",
+      "persongroup",
+      "ridergroup"
+    ],
+    "excluded_final_labels": [
+      "ego vehicle",
+      "out of roi"
+    ],
+    "duplicate_removal": {
+      "cross_source_only": true,
+      "iou_threshold": 0.5,
+      "overlap_over_smaller_threshold": 0.8,
+      "source_priority": {
+        "citypersons": 2,
+        "gtcoarse": 1,
+        "unknown": 0
+      }
+    }
+  },
+  "stage_02_filter_cropped_images": {
+    "max_selected_images": 3000,
+    "random_seed": 42,
+    "count_label_mode": "person_related",
+    "count_filter_mode": "none",
+    "selection_mode": "most_overlap",
+    "min_objects": 1,
+    "max_objects": 5,
+    "min_person_boxes_for_overlap": 2,
+    "overlap_iou_threshold": 0.05,
+    "overlap_over_smaller_threshold": 0.5,
+    "min_overlapping_person_pairs": 1,
+    "keep_all_categories": true,
+    "reindex_ids": false
+  },
+  "stage_03_create_yolo_annotations": {
+    "yolo_class_mode": "person_related_single_class",
+    "single_person_class_name": "person",
+    "clip_boxes_to_image": true,
+    "min_box_width_pixels": 1.0,
+    "min_box_height_pixels": 1.0,
+    "yolo_decimals": 6,
+    "copy_images_to_yolo_folder": true,
+    "create_empty_label_files": true
+  },
+  "stage_04_draw_yolo_bb_debug": {
+    "purpose": "inspection_only",
+    "draw_labels": true,
+    "draw_confidence_if_present": false,
+    "save_images_without_labels": true,
+    "save_images_with_empty_labels": true
+  },
+  "notes": [
+    "The public repository standardizes the merged class name as pedestrian.",
+    "The original YOLO conversion script currently writes the merged single class as person.",
+    "This file documents script defaults and should be updated if the reconstruction pipeline changes."
+  ]
+}
