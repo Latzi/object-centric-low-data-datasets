@@ -1,1 +1,1 @@
-"sample_id,source_image_id,split,class_id,class_name,detector_name,detector_confidence,min_object_size_rule,crop_size,source_width,source_height,bb_width,bb_height,privacy_blur_present,occlusion_tag,grouping_tag,derived_artifact_relpath,filter_status,notes"
+"sample_id,source_image_id,split,class_id,class_name,num_boxes,detector_name,detector_confidence_rule,min_object_size_rule,crop_size,source_width,source_height,privacy_blur_present,occlusion_expected,grouping_expected,derived_artifact_relpath,annotation_relpath,filter_stage,notes"
