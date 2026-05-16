@@ -1,22 +1,32 @@
 {
-  "subset_name": "Cityscapes--Pedestrian",
-  "release_mode": "abstract_non_image",
-  "class_map": {
-    "0": "pedestrian"
-  },
-  "target_crop_size": [256, 256],
-  "source_image_size": [2048, 1024],
-  "detector_name": "YOLOv5x",
-  "detector_confidence_rule": "> 0.8",
-  "min_object_size_rule": [70, 32],
-  "manifest_file": "../manifests/cityscapes_pedestrian_manifest.csv",
-  "split_counts": {
-    "train": null,
-    "val": null,
-    "test": null
-  },
-  "privacy_blur_expected": true,
-  "occlusion_expected": true,
-  "grouping_expected": true,
-  "notes": "Public non-image metadata for the Cityscapes-derived pedestrian subset. This repository does not redistribute Cityscapes images or cropped pedestrian patches."
+    "subset_name":  "Cityscapes--Pedestrian",
+    "release_mode":  "abstract_non_image",
+    "class_map":  {
+                      "0":  "pedestrian"
+                  },
+    "target_crop_size":  [
+                             256,
+                             256
+                         ],
+    "source_image_size":  [
+                              2048,
+                              1024
+                          ],
+    "detector_name":  "YOLOv5x",
+    "detector_confidence_rule":  "\u003e 0.8",
+    "min_object_size_rule":  [
+                                 70,
+                                 32
+                             ],
+    "manifest_file":  "../manifests/cityscapes_pedestrian_manifest.csv",
+    "split_counts":  {
+                         "train":  1509,
+                         "val":  323,
+                         "test":  324
+                     },
+    "total_records":  2156,
+    "privacy_blur_expected":  true,
+    "occlusion_expected":  true,
+    "grouping_expected":  true,
+    "notes":  "Public non-image metadata for the Cityscapes-derived pedestrian subset. This repository does not redistribute Cityscapes images or cropped pedestrian patches."
 }
