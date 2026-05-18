@@ -44,7 +44,7 @@ MIN_BOX_HEIGHT_PIXELS = 12
 # By default we keep only the selected instance in each crop label.
 # If you want all intersecting potted-plant boxes kept in the crop,
 # set this to True.
-INCLUDE_ALL_INTERSECTING_BOXES = False
+INCLUDE_ALL_INTERSECTING_BOXES = True
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp"}
 
