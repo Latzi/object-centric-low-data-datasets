@@ -1,24 +1,27 @@
 {
-  "subset_name": "COCO PottedPlant",
-  "release_mode": "metadata_reconstruction_first",
-  "class_map": {
-    "0": "potted_plant"
-  },
-  "source_dataset": "MS-COCO 2017",
-  "source_category_name": "potted plant",
-  "source_category_id_note": "resolved by category name in the extraction script",
-  "target_crop_size": [256, 256],
-  "per_instance_crops": true,
-  "random_offset_expected": true,
-  "small_box_filtering_expected": true,
-  "include_all_intersecting_boxes": true,
-  "manifest_file": "../manifests/coco_pottedplant_manifest.csv",
-  "split_counts": {
-    "train": null,
-    "val": null
-  },
-  "total_records": null,
-  "context_variability_expected": true,
-  "indoor_outdoor_variability_expected": true,
-  "notes": "Public metadata for the COCO-derived potted-plant subset. The repository provides reconstruction assets, metadata, and code; it does not assume blanket redistribution rights for all COCO-derived image files."
+    "subset_name":  "COCO PottedPlant",
+    "release_mode":  "metadata_reconstruction_first",
+    "class_map":  {
+                      "0":  "potted_plant"
+                  },
+    "source_dataset":  "MS-COCO 2017",
+    "source_category_name":  "potted plant",
+    "source_category_id_note":  "resolved by category name in step 01 extraction",
+    "target_crop_size":  [
+                             256,
+                             256
+                         ],
+    "per_instance_crops":  true,
+    "random_offset_expected":  true,
+    "small_box_filtering_expected":  true,
+    "include_all_intersecting_boxes":  true,
+    "manifest_file":  "../manifests/coco_pottedplant_manifest.csv",
+    "split_counts":  {
+                         "val":  299,
+                         "train":  7380
+                     },
+    "total_records":  7679,
+    "context_variability_expected":  true,
+    "indoor_outdoor_variability_expected":  true,
+    "notes":  "Public metadata for the COCO-derived potted-plant subset. The repository provides reconstruction assets, metadata, and code; it does not assume blanket redistribution rights for all COCO-derived image files."
 }
