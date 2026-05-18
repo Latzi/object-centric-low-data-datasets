@@ -1,1 +1,17 @@
-Placeholder
+cff-version: 1.2.0
+title: "Object-Centric Low-Data Datasets"
+message: "If you use this dataset collection, please cite the associated paper and repository release."
+type: dataset
+authors:
+  - family-names: "TBD"
+    given-names: "TBD"
+repository-code: "https://github.com/Latzi/object-centric-low-data-datasets"
+abstract: "A mixed-release collection of object-centric datasets for low-data image generation and augmentation, including TrafficSigns, Cityscapes--Pedestrian, and COCO PottedPlant."
+keywords:
+  - object-centric datasets
+  - low-data generation
+  - data augmentation
+  - generative modeling
+license: "TBD"
+version: "0.1.0"
+date-released: "TBD"
