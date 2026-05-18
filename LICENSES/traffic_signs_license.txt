@@ -1,1 +1,29 @@
-Placeholder
+TrafficSigns License Notice
+===========================
+
+This notice applies to the TrafficSigns subset in the Object-Centric Low-Data Datasets collection.
+
+Subset:
+TrafficSigns
+
+Release mode:
+Direct release
+
+Public files:
+The TrafficSigns subset includes released image files, YOLO-format annotations, metadata, manifests, checksums, loaders, and examples.
+
+Recommended license:
+TBD before final public release.
+
+Suggested options to confirm with supervisor:
+1. CC BY 4.0 if the intention is broad academic reuse with attribution.
+2. CC BY-NC 4.0 if the intention is research / non-commercial reuse only.
+3. Custom institutional license if required by the university or project owner.
+
+Current status:
+This file is a placeholder license notice until the final dataset license is confirmed by the authors / institution.
+
+User responsibility:
+Users must follow the final license selected for the TrafficSigns subset and cite the associated dataset paper or repository release when using the data.
+
+This notice does not apply to Cityscapes-derived or COCO-derived subsets. Those subsets have separate notices because they depend on upstream datasets.
