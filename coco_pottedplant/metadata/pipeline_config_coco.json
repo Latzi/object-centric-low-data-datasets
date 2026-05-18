@@ -1,0 +1,52 @@
+{
+  "subset_name": "COCO PottedPlant",
+  "public_standardized_class_name": "potted_plant",
+  "release_mode": "metadata_reconstruction_first",
+  "pipeline_order": [
+    "01_extract_pottedplant_from_coco_to_yolo.py",
+    "02_create_instance_crops_from_yolo_pottedplant.py",
+    "03_draw_cropped_yolo_bb_debug.py"
+  ],
+  "raw_inputs": {
+    "dataset_name": "MS-COCO 2017",
+    "expected_folders": [
+      "train2017",
+      "val2017",
+      "annotations_trainval2017/annotations"
+    ],
+    "target_category_name": "potted plant"
+  },
+  "stage_01_extract_to_yolo": {
+    "source_split_preservation": true,
+    "splits": [
+      "train",
+      "val"
+    ],
+    "selection_mode": "category_name_lookup",
+    "target_category_name": "potted plant",
+    "yolo_class_id": 0,
+    "output_folder_name": "YOLO_pottedplant"
+  },
+  "stage_02_create_instance_crops": {
+    "target_crop_size": [256, 256],
+    "random_seed": 42,
+    "min_box_width_pixels": 12,
+    "min_box_height_pixels": 12,
+    "include_all_intersecting_boxes": true,
+    "preserve_original_train_val_split": true,
+    "output_folder_name": "YOLO_pottedplant_cropped"
+  },
+  "stage_03_draw_bb_debug": {
+    "purpose": "inspection_only",
+    "draw_labels": true,
+    "draw_confidence_if_present": false,
+    "save_images_without_labels": true,
+    "save_images_with_empty_labels": true
+  },
+  "notes": [
+    "Stage 01 extracts the target category from official COCO images and annotations into a YOLO full-image subset.",
+    "Stage 02 converts the extracted subset into 256x256 per-instance crops with random offset/margin.",
+    "The current crop-generation configuration keeps all intersecting potted-plant boxes in the cropped labels.",
+    "This repository does not assume blanket redistribution rights for all COCO-derived image files."
+  ]
+}
