@@ -1,132 +1,186 @@
-# \# COCO PottedPlant
+# COCO PottedPlant
 
-# 
+This folder contains the **COCO PottedPlant** subset of the **Object-Centric Low-Data Datasets** collection.
 
-# This folder contains the \*\*COCO PottedPlant\*\* subset of the \*\*Object-Centric Low-Data Datasets\*\* collection.
+## Summary
 
-# 
+COCO PottedPlant is an MS-COCO-derived object-centric subset designed for low-data image generation and augmentation research.
 
-# \## Summary
+The subset is reconstructed locally from upstream COCO 2017 data. The pipeline extracts the `potted plant` category, converts the selected images and annotations into YOLO format, creates `256x256` per-instance crops, and generates cropped YOLO labels.
 
-# 
+The subset captures strong contextual variability because potted plants appear across diverse indoor and outdoor scenes, with variable object scale, placement, and background complexity.
 
-# COCO PottedPlant is an MS-COCO-derived object-centric subset designed for low-data image generation and augmentation research.
+## Why this subset matters
 
-# 
+Compared with the other subsets in the collection, COCO PottedPlant provides the most context-diverse visual regime:
 
-# In the FDGAN setup, this subset is created from \*\*MS-COCO 2017\*\* by selecting the \*\*potted plant\*\* category and generating `256×256` crops on a per-instance basis. Each crop is formed so that the selected plant instance lies inside the crop with a random margin or offset, which means the object is not always centered and the surrounding context varies across samples. The resulting subset exposes diverse indoor and outdoor backgrounds, variable object placement, and greater contextual variability than the simpler TrafficSigns subset. :contentReference\[oaicite:2]{index=2}
+- indoor and outdoor scenes
+- variable background complexity
+- variable object placement
+- per-instance crop construction
+- possible multiple potted plants per crop
+- stronger contextual variation than the TrafficSigns subset
 
-# 
+This makes the subset useful for studying low-data object-centric generation under contextual variability.
 
-# \## Why this subset matters
+## Release mode
 
-# 
+This subset is released in **metadata / reconstruction-first form**.
 
-# Compared with the other subsets in the collection, COCO PottedPlant provides the most context-diverse visual regime:
+That means this repository does **not** assume blanket redistribution rights for:
 
-# 
+- original MS-COCO image files
+- all derived COCO crop images
+- thumbnails or preview images derived from COCO
+- mask images derived from COCO crops
 
-# \- indoor and outdoor scenes
+Instead, this folder contains public non-image release assets:
 
-# \- variable background complexity
+- reconstruction scripts
+- public manifest
+- public per-box annotation table
+- split documentation
+- metadata
+- checksums
+- mask-generation documentation
+- preparation / reconstruction tooling
 
-# \- variable object placement
+## Public artifacts
 
-# \- per-instance crop construction
+The main public artifacts for this subset are:
 
-# \- possible overlap between crops when plants are close
+```text
+coco_pottedplant/scripts/
+coco_pottedplant/reconstruct_coco.py
+coco_pottedplant/manifests/coco_pottedplant_manifest.csv
+coco_pottedplant/annotations/coco_pottedplant_boxes.csv
+coco_pottedplant/metadata/coco_pottedplant_summary.json
+coco_pottedplant/metadata/pipeline_config_coco.json
+coco_pottedplant/checksums/coco_pottedplant_public_sha256.txt
+coco_pottedplant/splits/README.md
+coco_pottedplant/masks/README.md
+```
 
-# 
+## Public manifest
 
-# This makes the subset useful for studying low-data object-centric generation under strong contextual variability.
+The canonical public manifest is:
 
-# 
+```text
+manifests/coco_pottedplant_manifest.csv
+```
 
-# \## Release mode
+The manifest contains one row per public sample record.
 
-# 
+Current public manifest counts:
 
-# This subset is released in \*\*metadata / reconstruction-first form\*\*.
+| Split | Count |
+|---|---:|
+| train | 7380 |
+| val | 299 |
+| total | 7679 |
 
-# 
+## Public annotation table
 
-# That means this repository is intended to provide:
+The canonical public annotation table is:
 
-# 
+```text
+annotations/coco_pottedplant_boxes.csv
+```
 
-# \- annotations
+This file contains one row per potted-plant bounding box in the locally reconstructed cropped YOLO subset.
 
-# \- split files or split documentation
+Current public annotation-table row count:
 
-# \- manifests
+```text
+20230 boxes
+```
 
-# \- metadata
+The annotation table does **not** contain image pixels. It is intended to support:
 
-# \- checksums
+- annotation inspection
+- split-level statistics
+- bounding-box mask rasterization
+- consistency checks against the manifest
+- local reconstruction workflows for users who obtain COCO separately
 
-# \- preparation / reconstruction scripts
+## Class definition
 
-# \- documentation
+The public standardized class mapping is:
 
-# 
+```text
+0 -> potted_plant
+```
 
-# rather than directly redistributing a blanket packaged image subset.
+## Reconstruction pipeline
 
-# 
+The COCO PottedPlant pipeline is documented through the scripts in:
 
-# \## Intended structure
+```text
+scripts/
+```
 
-# 
+The expected pipeline order is:
 
-# The intended contents of this folder are:
+```text
+01_extract_pottedplant_from_coco_to_yolo.py
+02_create_instance_crops_from_yolo_pottedplant.py
+03_draw_cropped_yolo_bb_debug.py
+04_build_public_manifest_from_local_cropped_yolo.py
+```
 
-# 
+The local pipeline starts from official COCO 2017 downloads such as:
 
-# \- `annotations/` — non-image annotation artifacts
+```text
+train2017/
+val2017/
+annotations_trainval2017/
+```
 
-# \- `masks/` — derived mask artifacts where appropriate
+and produces a local cropped YOLO subset.
 
-# \- `splits/` — split definitions or split documentation
+That local cropped image output is not included as a blanket public image release in this repository.
 
-# \- `manifests/` — canonical machine-readable subset manifests
+## Annotation behavior
 
-# \- `metadata/` — subset-level metadata and summary files
+The crop-generation stage creates `256x256` per-instance crops.
 
-# \- `checksums/` — integrity files for released artifacts
+The current crop-generation configuration keeps all intersecting potted-plant boxes in the cropped labels. This avoids leaving visible additional potted plants unlabeled when multiple target objects appear in a crop.
 
-# \- `reconstruct\_coco.py` — preparation / reconstruction tooling
+## Masks
 
-# 
+Explicit binary mask image files are not distributed.
 
-# \## Notes on upstream dependency
+If a model requires bounding-box masks, users can rasterize binary masks from the public annotation table or from locally reconstructed YOLO labels.
 
-# 
+For a `256x256` crop, a bounding-box mask can be generated by setting pixels inside the bounding box to `1` and pixels outside the box to `0`.
 
-# Users who wish to work with this subset must obtain the upstream COCO images separately and comply with the original upstream terms that apply to those files.
+See:
 
-# 
+```text
+masks/README.md
+```
 
-# This repository does not grant rights to the underlying upstream image data.
+## Notes on upstream dependency
 
-# 
+Users who wish to work with this subset must obtain the upstream COCO images and annotations separately and comply with the upstream terms that apply to those files.
 
-# See also:
+This repository does not grant rights to the underlying COCO image data.
 
-# 
+See also:
 
-# \- `../LICENSES/coco\_notice.txt`
+```text
+../LICENSES/coco_notice.txt
+```
 
-# 
+## Related documentation
 
-# \## Notes
+The public artifacts in this folder should remain consistent with:
 
-# 
-
-# The canonical public artifacts for this subset are the non-image release assets stored in this folder. These assets should remain consistent with the documentation in:
-
-# 
-
-# \- `../docs/release\_matrix.md`
-
-# \- `../docs/dataset\_card.md`
-
+```text
+../README.md
+../docs/release_matrix.md
+../docs/dataset_card.md
+../docs/provenance.md
+../docs/ethics.md
+../docs/faq.md
+```

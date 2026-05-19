@@ -1,140 +1,182 @@
-# \# Cityscapes--Pedestrian
+# Cityscapes--Pedestrian
 
-# 
+This folder contains the **Cityscapes--Pedestrian** subset of the **Object-Centric Low-Data Datasets** collection.
 
-# This folder contains the \*\*Cityscapes--Pedestrian\*\* subset of the \*\*Object-Centric Low-Data Datasets\*\* collection.
+## Summary
 
-# 
+Cityscapes--Pedestrian is a Cityscapes-derived object-centric subset designed for low-data image generation and augmentation research.
 
-# \## Summary
+The subset is reconstructed locally from upstream Cityscapes data using a documented preparation pipeline. The pipeline creates `256x256` pedestrian-focused crops from high-resolution Cityscapes frames and produces YOLO-format bounding-box labels, split metadata, public manifests, and public annotation tables.
 
-# 
+This subset represents the most challenging regime in the collection, with dense scenes, overlap, occlusion, privacy blur, and visually complex urban backgrounds.
 
-# Cityscapes--Pedestrian is a Cityscapes-derived object-centric subset designed for low-data image generation and augmentation research.
+## Why this subset matters
 
-# 
+Compared with the other subsets in the collection, Cityscapes--Pedestrian is the most difficult visual regime:
 
-# In the FDGAN setup, this subset is created from high-resolution Cityscapes frames by merging pedestrian-related classes into a unified pedestrian category and extracting `256×256` crops around detected objects. The resulting subset represents the most challenging regime in the collection, with dense scenes, overlap, occlusion, privacy blur, and visually complex urban backgrounds. :contentReference\[oaicite:2]{index=2}
+- dense pedestrian scenes
+- frequent overlap and occlusion
+- privacy-blurred faces
+- cluttered urban backgrounds
+- greater structural ambiguity than simpler object-centric datasets
 
-# 
+This makes the subset useful for studying low-data object-centric generation under degraded real-world conditions.
 
-# \## Why this subset matters
+## Release mode
 
-# 
+This subset is released in **abstract / non-image form**.
 
-# Compared with the other subsets in the collection, Cityscapes--Pedestrian is the most difficult visual regime:
+That means this repository does **not** redistribute:
 
-# 
+- original Cityscapes image files
+- cropped pedestrian image patches derived from Cityscapes
+- thumbnails or substitute image exports
+- mask images derived from Cityscapes crops
 
-# \- dense pedestrian scenes
+Instead, this folder contains public non-image release assets:
 
-# \- frequent overlap and occlusion
+- reconstruction scripts
+- public manifest
+- public per-box annotation table
+- split documentation
+- metadata
+- checksums
+- mask-generation documentation
+- preparation / reconstruction tooling
 
-# \- privacy-blurred faces
+## Public artifacts
 
-# \- cluttered urban backgrounds
+The main public artifacts for this subset are:
 
-# \- greater structural ambiguity than simpler object-centric datasets
+```text
+cityscapes_pedestrian/scripts/
+cityscapes_pedestrian/reconstruct_cityscapes.py
+cityscapes_pedestrian/manifests/cityscapes_pedestrian_manifest.csv
+cityscapes_pedestrian/annotations/cityscapes_pedestrian_boxes.csv
+cityscapes_pedestrian/metadata/cityscapes_pedestrian_summary.json
+cityscapes_pedestrian/metadata/pipeline_config_cityscapes.json
+cityscapes_pedestrian/checksums/cityscapes_pedestrian_public_sha256.txt
+cityscapes_pedestrian/splits/README.md
+cityscapes_pedestrian/masks/README.md
+```
 
-# 
+## Public manifest
 
-# This makes the subset useful for studying low-data object-centric generation under degraded real-world conditions.
+The canonical public manifest is:
 
-# 
+```text
+manifests/cityscapes_pedestrian_manifest.csv
+```
 
-# \## Release mode
+The manifest contains one row per public sample record.
 
-# 
+Current public manifest counts:
 
-# This subset is released in \*\*abstract / non-image form\*\*.
+| Split | Count |
+|---|---:|
+| train | 1509 |
+| val | 323 |
+| test | 324 |
+| total | 2156 |
 
-# 
+## Public annotation table
 
-# That means this repository does \*\*not\*\* redistribute:
+The canonical public annotation table is:
 
-# 
+```text
+annotations/cityscapes_pedestrian_boxes.csv
+```
 
-# \- original Cityscapes image files
+This file contains one row per pedestrian-related bounding box associated with the public manifest records.
 
-# \- cropped pedestrian image patches derived from Cityscapes
+Current public annotation-table row count:
 
-# \- thumbnails or substitute image exports
+```text
+17479 boxes
+```
 
-# 
+The annotation table does **not** contain image pixels. It is intended to support:
 
-# Instead, this folder is intended to contain:
+- annotation inspection
+- split-level statistics
+- bounding-box mask rasterization
+- consistency checks against the manifest
+- local reconstruction workflows for authorized users
 
-# 
+## Class definition
 
-# \- annotations
+The public standardized class mapping is:
 
-# \- split files
+```text
+0 -> pedestrian
+```
 
-# \- manifests
+## Reconstruction pipeline
 
-# \- metadata
+The Cityscapes--Pedestrian pipeline is documented through the scripts in:
 
-# \- checksums
+```text
+scripts/
+```
 
-# \- preparation / reconstruction scripts
+The expected pipeline order is:
 
-# \- documentation
+```text
+01_create_crops_from_cityscapes_with_bb.py
+02_filter_cropped_images.py
+03_create_yolo_annotations_from_filtered.py
+04_draw_yolo_bb_debug.py
+05_create_yolo_split_structure.py
+06_build_public_manifest_from_local_yolo.py
+```
 
-# 
+The local pipeline starts from upstream Cityscapes folders such as:
 
-# \## Intended structure
+```text
+leftImg8bit_blurred/
+gtBboxCityPersons/
+gtCoarse/
+```
 
-# 
+and produces a local authorized YOLO-style `Train_Data` structure.
 
-# The intended contents of this folder are:
+That local `Train_Data` output is not included in this repository.
 
-# 
+## Masks
 
-# \- `annotations/` — released non-image annotation artifacts
+Explicit binary mask image files are not distributed.
 
-# \- `masks/` — derived mask artifacts where appropriate
+If a model requires bounding-box masks, users can rasterize binary masks from the public annotation table or from locally reconstructed YOLO labels.
 
-# \- `splits/` — split definitions or split documentation
+For a `256x256` crop, a bounding-box mask can be generated by setting pixels inside the bounding box to `1` and pixels outside the box to `0`.
 
-# \- `manifests/` — canonical machine-readable subset manifests
+See:
 
-# \- `metadata/` — subset-level metadata and summary files
+```text
+masks/README.md
+```
 
-# \- `checksums/` — integrity files for released artifacts
+## Notes on upstream dependency
 
-# \- `reconstruct\_cityscapes.py` — preparation / reconstruction tooling
+Users who wish to work with this subset must obtain access to the original Cityscapes dataset separately and comply with the official upstream terms.
 
-# 
+This repository does not grant rights to the underlying Cityscapes image data.
 
-# \## Notes on upstream dependency
+See also:
 
-# 
+```text
+../LICENSES/cityscapes_notice.txt
+```
 
-# Users who wish to work with this subset must obtain access to the original Cityscapes dataset separately and comply with the official upstream terms.
+## Related documentation
 
-# 
+The public artifacts in this folder should remain consistent with:
 
-# This repository does not grant rights to the underlying Cityscapes image data.
-
-# 
-
-# See also:
-
-# 
-
-# \- `../LICENSES/cityscapes\_notice.txt`
-
-# 
-
-# \## Notes
-
-# 
-
-# The canonical public artifacts for this subset are the non-image release assets stored in this folder. These assets should remain consistent with the documentation in:
-
-# 
-
-# \- `../docs/release\_matrix.md`
-
-# \- `../docs/dataset\_card.md`
-
+```text
+../README.md
+../docs/release_matrix.md
+../docs/dataset_card.md
+../docs/provenance.md
+../docs/ethics.md
+../docs/faq.md
+```
