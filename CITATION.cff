@@ -1,17 +1,31 @@
 cff-version: 1.2.0
 title: "Object-Centric Low-Data Datasets"
-message: "If you use this dataset collection, please cite the associated paper and repository release."
+message: "If you use this dataset collection, please cite the associated paper, repository release, and DOI-backed archival release."
 type: dataset
+
 authors:
-  - family-names: "TBD"
-    given-names: "TBD"
+  - family-names: "Marian"
+    given-names: "Vasile"
+  - family-names: "Kang"
+    given-names: "Yong-Bin"
+  - family-names: "Buddery"
+    given-names: "Alexander"
+
 repository-code: "https://github.com/Latzi/object-centric-low-data-datasets"
-abstract: "A mixed-release collection of object-centric datasets for low-data image generation and augmentation, including TrafficSigns, Cityscapes--Pedestrian, and COCO PottedPlant."
+url: "https://github.com/Latzi/object-centric-low-data-datasets"
+doi: "10.5281/zenodo.20340519"
+
+abstract: "A mixed-release collection of object-centric datasets for low-data image generation and augmentation, including TrafficSigns, Cityscapes--Pedestrian, and COCO PottedPlant. TrafficSigns is released directly with images and YOLO annotations. Cityscapes--Pedestrian and COCO PottedPlant are released through reconstruction-first public artifacts including scripts, manifests, per-box annotation CSVs, metadata, checksums, and documentation."
+
 keywords:
   - object-centric datasets
   - low-data generation
   - data augmentation
-  - generative modeling
-license: "TBD"
+  - generative modelling
+  - computer vision
+  - YOLO annotations
+  - dataset resource
+
+license: "CC-BY-4.0"
 version: "0.1.0"
-date-released: "TBD"
+date-released: "2026-05-22"
