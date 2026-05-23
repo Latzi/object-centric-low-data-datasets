@@ -1,20 +1,20 @@
-\# Cityscapes--Pedestrian Metadata
+# Cityscapes--Pedestrian Metadata
 
 
 
-This folder contains the subset-level metadata files for the \*\*Cityscapes--Pedestrian\*\* subset.
+This folder contains the subset-level metadata files for the **Cityscapes--Pedestrian** subset.
 
 
 
-\## Purpose
+## Purpose
 
 
 
-Because this subset is released in \*\*abstract / non-image form\*\*, metadata files in this folder provide the high-level structured description of the released subset without redistributing the underlying Cityscapes image data.
+Because this subset is released in **abstract / non-image form**, metadata files in this folder provide the high-level structured description of the released subset without redistributing the underlying Cityscapes image data.
 
 
 
-\## Intended contents
+## Intended contents
 
 
 
@@ -22,19 +22,19 @@ This folder is intended to contain subset-level metadata such as:
 
 
 
-\- summary JSON files
+- summary JSON files
 
-\- subset statistics
+- subset statistics
 
-\- release-mode descriptors
+- release-mode descriptors
 
-\- class mapping information
+- class mapping information
 
-\- references to the canonical public manifest
+- references to the canonical public manifest
 
 
 
-\## Relationship to other files
+## Relationship to other files
 
 
 
@@ -42,19 +42,19 @@ The metadata files in this folder should remain consistent with:
 
 
 
-\- `../README.md`
+- `../README.md`
 
-\- `../manifests/cityscapes\_pedestrian\_manifest.csv`
+- `../manifests/cityscapes_pedestrian_manifest.csv`
 
-\- `../splits/`
+- `../splits/`
 
-\- `../annotations/`
+- `../annotations/`
 
-\- `../reconstruct\_cityscapes.py`
+- `../reconstruct_cityscapes.py`
 
 
 
-\## What metadata should describe
+## What metadata should describe
 
 
 
@@ -62,25 +62,25 @@ Subset-level metadata should document:
 
 
 
-\- subset name
+- subset name
 
-\- release mode
+- release mode
 
-\- class mapping
+- class mapping
 
-\- expected crop size
+- expected crop size
 
-\- detector / preprocessing settings where appropriate
+- detector / preprocessing settings where appropriate
 
-\- split counts
+- split counts
 
-\- links to canonical manifest files
+- links to canonical manifest files
 
-\- notes on upstream dependency and redistribution constraints
+- notes on upstream dependency and redistribution constraints
 
 
 
-\## What does NOT belong here
+## What does NOT belong here
 
 
 
@@ -88,17 +88,17 @@ This folder should not contain:
 
 
 
-\- original Cityscapes images
+- original Cityscapes images
 
-\- cropped pedestrian image files
+- cropped pedestrian image files
 
-\- preview images or thumbnails
+- preview images or thumbnails
 
-\- image-derived artifacts intended to substitute for the source data
+- image-derived artifacts intended to substitute for the source data
 
 
 
-\## Notes
+## Notes
 
 
 
@@ -110,9 +110,9 @@ See also:
 
 
 
-\- `../../LICENSES/cityscapes\_notice.txt`
+- `../../LICENSES/cityscapes_notice.txt`
 
-\- `../../docs/release\_matrix.md`
+- `../../docs/release_matrix.md`
 
-\- `../../docs/dataset\_card.md`
+- `../../docs/dataset_card.md`
 

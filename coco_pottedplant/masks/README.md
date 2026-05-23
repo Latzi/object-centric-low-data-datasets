@@ -1,8 +1,8 @@
-\# COCO PottedPlant Masks
+# COCO PottedPlant Masks
 
 
 
-This folder documents mask handling for the \*\*COCO PottedPlant\*\* subset.
+This folder documents mask handling for the **COCO PottedPlant** subset.
 
 
 
@@ -14,7 +14,7 @@ Instead, bounding-box masks can be generated from the YOLO-format bounding-box a
 
 
 
-\## Why masks are not stored here
+## Why masks are not stored here
 
 
 
@@ -22,7 +22,7 @@ The COCO PottedPlant subset is released in metadata / reconstruction-first form.
 
 
 
-\## How to obtain masks
+## How to obtain masks
 
 
 
@@ -34,15 +34,15 @@ For a `256x256` crop, a BB mask is a binary image where pixels inside a potted-p
 
 
 
-\## Related files
+## Related files
 
 
 
-\- `../annotations/`
+- `../annotations/`
 
-\- `../manifests/coco\_pottedplant\_manifest.csv`
+- `../manifests/coco_pottedplant_manifest.csv`
 
-\- `../scripts/`
+- `../scripts/`
 
-\- `../../LICENSES/coco\_notice.txt`
+- `../../LICENSES/coco_notice.txt`
 

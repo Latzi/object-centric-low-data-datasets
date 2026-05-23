@@ -1,8 +1,8 @@
-\# Cityscapes--Pedestrian Masks
+# Cityscapes--Pedestrian Masks
 
 
 
-This folder documents mask handling for the \*\*Cityscapes--Pedestrian\*\* subset.
+This folder documents mask handling for the **Cityscapes--Pedestrian** subset.
 
 
 
@@ -14,7 +14,7 @@ Instead, bounding-box masks are generated from the released or locally reconstru
 
 
 
-\## Why masks are not stored here
+## Why masks are not stored here
 
 
 
@@ -22,15 +22,15 @@ The Cityscapes--Pedestrian subset is released in abstract / non-image form. This
 
 
 
-\- original Cityscapes images
+- original Cityscapes images
 
-\- derived Cityscapes crop images
+- derived Cityscapes crop images
 
-\- mask images derived from Cityscapes crops
+- mask images derived from Cityscapes crops
 
 
 
-\## How to obtain masks
+## How to obtain masks
 
 
 
@@ -42,15 +42,15 @@ For a `256x256` crop, a BB mask is a binary image where pixels inside the boundi
 
 
 
-\## Related files
+## Related files
 
 
 
-\- `../annotations/`
+- `../annotations/`
 
-\- `../manifests/cityscapes\_pedestrian\_manifest.csv`
+- `../manifests/cityscapes_pedestrian_manifest.csv`
 
-\- `../scripts/`
+- `../scripts/`
 
-\- `../../LICENSES/cityscapes\_notice.txt`
+- `../../LICENSES/cityscapes_notice.txt`
 

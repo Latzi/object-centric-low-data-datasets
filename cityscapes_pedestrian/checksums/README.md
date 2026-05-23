@@ -1,16 +1,16 @@
-\# Cityscapes--Pedestrian Checksums
+# Cityscapes--Pedestrian Checksums
 
 
 
-This folder documents checksum usage for the \*\*Cityscapes--Pedestrian\*\* subset.
+This folder documents checksum usage for the **Cityscapes--Pedestrian** subset.
 
 
 
-\## Purpose
+## Purpose
 
 
 
-Because this subset is released in \*\*abstract / non-image form\*\*, checksum files in this folder are intended to verify the integrity of released non-image artifacts.
+Because this subset is released in **abstract / non-image form**, checksum files in this folder are intended to verify the integrity of released non-image artifacts.
 
 
 
@@ -18,19 +18,19 @@ These may include:
 
 
 
-\- manifest files
+- manifest files
 
-\- metadata files
+- metadata files
 
-\- split files
+- split files
 
-\- annotation tables
+- annotation tables
 
-\- reconstruction / preparation scripts
+- reconstruction / preparation scripts
 
 
 
-\## What checksum files may cover
+## What checksum files may cover
 
 
 
@@ -38,19 +38,19 @@ Checksum files in this folder may be used to verify:
 
 
 
-\- `../manifests/`
+- `../manifests/`
 
-\- `../metadata/`
+- `../metadata/`
 
-\- `../splits/`
+- `../splits/`
 
-\- `../annotations/`
+- `../annotations/`
 
-\- `../reconstruct\_cityscapes.py`
+- `../reconstruct_cityscapes.py`
 
 
 
-\## What is NOT covered here
+## What is NOT covered here
 
 
 
@@ -58,11 +58,11 @@ This folder is not intended to provide checksums for:
 
 
 
-\- original Cityscapes images
+- original Cityscapes images
 
-\- cropped pedestrian image patches
+- cropped pedestrian image patches
 
-\- preview images or thumbnails
+- preview images or thumbnails
 
 
 
@@ -70,7 +70,7 @@ Those image files are not redistributed in this repository.
 
 
 
-\## Notes
+## Notes
 
 
 
@@ -78,9 +78,9 @@ If checksum files are added later, this folder should make clear:
 
 
 
-\- which released files are covered
+- which released files are covered
 
-\- which checksum algorithm is used
+- which checksum algorithm is used
 
-\- which checksum file is the canonical public integrity record
+- which checksum file is the canonical public integrity record
 

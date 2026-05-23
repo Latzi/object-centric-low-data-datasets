@@ -1,16 +1,16 @@
-\# Cityscapes--Pedestrian Manifests
+# Cityscapes--Pedestrian Manifests
 
 
 
-This folder contains the canonical manifest documentation for the \*\*Cityscapes--Pedestrian\*\* subset.
+This folder contains the canonical manifest documentation for the **Cityscapes--Pedestrian** subset.
 
 
 
-\## Purpose
+## Purpose
 
 
 
-Because this subset is released in \*\*abstract / non-image form\*\*, the manifest is one of the key public artifacts.
+Because this subset is released in **abstract / non-image form**, the manifest is one of the key public artifacts.
 
 
 
@@ -18,7 +18,7 @@ The manifest is intended to describe the released subset in a machine-readable w
 
 
 
-\## What a manifest records
+## What a manifest records
 
 
 
@@ -26,25 +26,25 @@ A Cityscapes--Pedestrian manifest should record, for each released sample or sub
 
 
 
-\- a stable released sample identifier
+- a stable released sample identifier
 
-\- the upstream source image identifier
+- the upstream source image identifier
 
-\- split membership
+- split membership
 
-\- class information
+- class information
 
-\- crop metadata
+- crop metadata
 
-\- bounding-box metadata
+- bounding-box metadata
 
-\- references to any released non-image artifacts
+- references to any released non-image artifacts
 
-\- notes about filtering or processing status
+- notes about filtering or processing status
 
 
 
-\## What a manifest should NOT contain
+## What a manifest should NOT contain
 
 
 
@@ -56,17 +56,17 @@ This folder should not contain:
 
 
 
-\- original Cityscapes images
+- original Cityscapes images
 
-\- cropped pedestrian image patches
+- cropped pedestrian image patches
 
-\- thumbnails or preview images
+- thumbnails or preview images
 
-\- any artifact intended to replicate the released image subset itself
+- any artifact intended to replicate the released image subset itself
 
 
 
-\## Intended manifest role in this repository
+## Intended manifest role in this repository
 
 
 
@@ -74,19 +74,19 @@ The Cityscapes--Pedestrian manifest is intended to support:
 
 
 
-\- reproducibility
+- reproducibility
 
-\- split tracking
+- split tracking
 
-\- metadata lookup
+- metadata lookup
 
-\- consistency checks across released annotations and derived artifacts
+- consistency checks across released annotations and derived artifacts
 
-\- preparation / reconstruction workflows used by authorized users with upstream dataset access
+- preparation / reconstruction workflows used by authorized users with upstream dataset access
 
 
 
-\## Related files
+## Related files
 
 
 
@@ -94,15 +94,15 @@ The manifest layer in this folder should remain consistent with:
 
 
 
-\- `../README.md`
+- `../README.md`
 
-\- `../metadata/`
+- `../metadata/`
 
-\- `../splits/`
+- `../splits/`
 
-\- `../annotations/`
+- `../annotations/`
 
-\- `../reconstruct\_cityscapes.py`
+- `../reconstruct_cityscapes.py`
 
 
 
@@ -110,11 +110,11 @@ See also:
 
 
 
-\- `../../LICENSES/cityscapes\_notice.txt`
+- `../../LICENSES/cityscapes_notice.txt`
 
 
 
-\## Notes
+## Notes
 
 
 

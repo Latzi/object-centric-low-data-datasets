@@ -1,16 +1,16 @@
-\# COCO PottedPlant Splits
+# COCO PottedPlant Splits
 
 
 
-This folder documents the split structure for the \*\*COCO PottedPlant\*\* subset.
+This folder documents the split structure for the **COCO PottedPlant** subset.
 
 
 
-\## Purpose
+## Purpose
 
 
 
-Because this subset is released in \*\*metadata / reconstruction-first form\*\*, the split layer is documented here as part of the public release package.
+Because this subset is released in **metadata / reconstruction-first form**, the split layer is documented here as part of the public release package.
 
 
 
@@ -18,7 +18,7 @@ The purpose of this folder is to describe how released records are assigned to u
 
 
 
-\## Canonical split definition
+## Canonical split definition
 
 
 
@@ -30,9 +30,9 @@ At present, the canonical split values are:
 
 
 
-\- `train`
+- `train`
 
-\- `val`
+- `val`
 
 
 
@@ -40,7 +40,7 @@ These split values should be reflected in:
 
 
 
-\- `../manifests/coco\_pottedplant\_manifest.csv`
+- `../manifests/coco_pottedplant_manifest.csv`
 
 
 
@@ -48,23 +48,23 @@ If additional split files are added later, they should remain consistent with th
 
 
 
-\## Current pipeline behavior
+## Current pipeline behavior
 
 
 
-\### Step 01
+### Step 01
 
-`01\_extract\_pottedplant\_from\_coco\_to\_yolo.py` extracts potted-plant instances from the official COCO `train2017` and `val2017` splits and writes a YOLO full-image subset.
-
-
-
-\### Step 02
-
-`02\_create\_instance\_crops\_from\_yolo\_pottedplant.py` creates `256×256` per-instance crops while preserving the split membership inherited from Step 01.
+`01_extract_pottedplant_from_coco_to_yolo.py` extracts potted-plant instances from the official COCO `train2017` and `val2017` splits and writes a YOLO full-image subset.
 
 
 
-\## What this folder may contain
+### Step 02
+
+`02_create_instance_crops_from_yolo_pottedplant.py` creates `256×256` per-instance crops while preserving the split membership inherited from Step 01.
+
+
+
+## What this folder may contain
 
 
 
@@ -72,17 +72,17 @@ This folder may contain:
 
 
 
-\- split documentation
+- split documentation
 
-\- optional text-based split lists
+- optional text-based split lists
 
-\- release notes about split construction
+- release notes about split construction
 
-\- mapping files that associate released sample identifiers with split membership
+- mapping files that associate released sample identifiers with split membership
 
 
 
-\## What this folder should NOT contain
+## What this folder should NOT contain
 
 
 
@@ -90,17 +90,17 @@ This folder should not contain:
 
 
 
-\- original MS-COCO image files
+- original MS-COCO image files
 
-\- blanket packaged cropped image subsets
+- blanket packaged cropped image subsets
 
-\- preview images or thumbnails
+- preview images or thumbnails
 
-\- artifacts intended to substitute for the underlying source data
+- artifacts intended to substitute for the underlying source data
 
 
 
-\## Notes
+## Notes
 
 
 
@@ -116,13 +116,13 @@ See also:
 
 
 
-\- `../README.md`
+- `../README.md`
 
-\- `../manifests/coco\_pottedplant\_manifest.csv`
+- `../manifests/coco_pottedplant_manifest.csv`
 
-\- `../metadata/coco\_pottedplant\_summary.json`
+- `../metadata/coco_pottedplant_summary.json`
 
-\- `../scripts/README.md`
+- `../scripts/README.md`
 
-\- `../../LICENSES/coco\_notice.txt`
+- `../../LICENSES/coco_notice.txt`
 

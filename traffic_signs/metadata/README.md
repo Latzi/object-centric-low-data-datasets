@@ -1,22 +1,22 @@
-\# TrafficSigns Metadata
+# TrafficSigns Metadata
 
 
 
-This folder contains the canonical metadata files for the \*\*TrafficSigns\*\* subset.
+This folder contains the canonical metadata files for the **TrafficSigns** subset.
 
 
 
-\## Files
+## Files
 
 
 
-\- `traffic\_signs\_manifest.csv` — one row per released image
+- `traffic_signs_manifest.csv` — one row per released image
 
-\- `traffic\_signs\_summary.json` — subset-level summary information
+- `traffic_signs_summary.json` — subset-level summary information
 
 
 
-\## Purpose
+## Purpose
 
 
 
@@ -28,17 +28,17 @@ The manifest records:
 
 
 
-\- the released image path
+- the released image path
 
-\- the matching annotation path
+- the matching annotation path
 
-\- split membership (`train`, `val`, or `test`)
+- split membership (`train`, `val`, or `test`)
 
-\- class information
+- class information
 
-\- the number of annotated boxes in each image
+- the number of annotated boxes in each image
 
-\- basic release-format information
+- basic release-format information
 
 
 
@@ -46,25 +46,25 @@ The summary JSON records:
 
 
 
-\- subset name
+- subset name
 
-\- release mode
+- release mode
 
-\- class map
+- class map
 
-\- target image size
+- target image size
 
-\- annotation format
+- annotation format
 
-\- total image count
+- total image count
 
-\- split counts
+- split counts
 
-\- dataset root and YOLO config reference
+- dataset root and YOLO config reference
 
 
 
-\## Canonical split structure
+## Canonical split structure
 
 
 
@@ -72,7 +72,7 @@ The canonical dataset layout for TrafficSigns is the YOLO-style folder structure
 
 
 
-\- `../Train\_Data/`
+- `../Train_Data/`
 
 
 
@@ -80,11 +80,11 @@ and the corresponding dataset configuration file:
 
 
 
-\- `../data.yaml`
+- `../data.yaml`
 
 
 
-\## Notes
+## Notes
 
 
 
@@ -92,11 +92,11 @@ The metadata files in this folder should stay consistent with:
 
 
 
-\- the actual files stored in `../Train\_Data/`
+- the actual files stored in `../Train_Data/`
 
-\- the YOLO label format used in `../Train\_Data/labels/...`
+- the YOLO label format used in `../Train_Data/labels/...`
 
-\- the class definition used in `../annotations/classes.txt`
+- the class definition used in `../annotations/classes.txt`
 
 
 

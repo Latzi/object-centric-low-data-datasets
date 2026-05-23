@@ -1,12 +1,12 @@
-\# COCO PottedPlant Scripts
+# COCO PottedPlant Scripts
 
 
 
-This folder contains the reconstruction / preparation pipeline used for the \*\*COCO PottedPlant\*\* subset.
+This folder contains the reconstruction / preparation pipeline used for the **COCO PottedPlant** subset.
 
 
 
-\## Pipeline order
+## Pipeline order
 
 
 
@@ -14,37 +14,37 @@ The scripts in this folder are intended to be used in the following order:
 
 
 
-1\. `01\_extract\_pottedplant\_from\_coco\_to\_yolo.py`
+1. `01_extract_pottedplant_from_coco_to_yolo.py`
 
-2\. `02\_create\_instance\_crops\_from\_yolo\_pottedplant.py`
+2. `02_create_instance_crops_from_yolo_pottedplant.py`
 
-3\. `03\_draw\_cropped\_yolo\_bb\_debug.py`
-
-
-
-\## Stage summary
+3. `03_draw_cropped_yolo_bb_debug.py`
 
 
 
-\### 01 — Extract potted plant from COCO into YOLO full-image format
+## Stage summary
+
+
+
+### 01 — Extract potted plant from COCO into YOLO full-image format
 
 This stage starts from the official downloadable COCO images and annotations, selects the target category, and writes a YOLO-compatible subset while preserving the original COCO split structure.
 
 
 
-\### 02 — Create 256x256 per-instance crops
+### 02 — Create 256x256 per-instance crops
 
 This stage converts the extracted full-image YOLO subset into an object-centric cropped subset. One crop is generated per selected instance, using random offset / margin so that the object is not always centered. Small boxes can be skipped, and intersecting potted-plant boxes may also be kept in the cropped labels.
 
 
 
-\### 03 — Draw YOLO bounding boxes for inspection
+### 03 — Draw YOLO bounding boxes for inspection
 
 This stage is a debug / inspection utility that renders YOLO bounding boxes on the cropped images for visual verification.
 
 
 
-\## Notes
+## Notes
 
 
 
@@ -60,11 +60,11 @@ See also:
 
 
 
-\- `../README.md`
+- `../README.md`
 
-\- `../manifests/`
+- `../manifests/`
 
-\- `../metadata/`
+- `../metadata/`
 
-\- `../../LICENSES/coco\_notice.txt`
+- `../../LICENSES/coco_notice.txt`
 

@@ -1,20 +1,20 @@
-\# TrafficSigns Checksums
+# TrafficSigns Checksums
 
 
 
-This folder stores checksum files for the \*\*TrafficSigns\*\* subset.
+This folder stores checksum files for the **TrafficSigns** subset.
 
 
 
-\## Current checksum file
+## Current checksum file
 
 
 
-\- `traffic\_signs\_sha256.txt` — SHA256 checksums for files under `../Train\_Data/`
+- `traffic_signs_sha256.txt` — SHA256 checksums for files under `../Train_Data/`
 
 
 
-\## Purpose
+## Purpose
 
 
 
@@ -22,7 +22,7 @@ These checksums allow users to verify that the released TrafficSigns files were 
 
 
 
-\## Notes
+## Notes
 
 
 
@@ -30,7 +30,7 @@ The current checksum file covers the canonical released dataset files stored und
 
 
 
-\- `../Train\_Data/`
+- `../Train_Data/`
 
 
 

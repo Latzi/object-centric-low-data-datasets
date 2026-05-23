@@ -1,16 +1,16 @@
-\# COCO PottedPlant Checksums
+# COCO PottedPlant Checksums
 
 
 
-This folder documents checksum usage for the \*\*COCO PottedPlant\*\* subset.
+This folder documents checksum usage for the **COCO PottedPlant** subset.
 
 
 
-\## Purpose
+## Purpose
 
 
 
-Because this subset is released in \*\*metadata / reconstruction-first form\*\*, checksum files in this folder are intended to verify the integrity of released non-image artifacts.
+Because this subset is released in **metadata / reconstruction-first form**, checksum files in this folder are intended to verify the integrity of released non-image artifacts.
 
 
 
@@ -18,21 +18,21 @@ These may include:
 
 
 
-\- manifest files
+- manifest files
 
-\- metadata files
+- metadata files
 
-\- split files
+- split files
 
-\- annotation documentation
+- annotation documentation
 
-\- reconstruction / preparation scripts
+- reconstruction / preparation scripts
 
-\- pipeline configuration files
+- pipeline configuration files
 
 
 
-\## What checksum files may cover
+## What checksum files may cover
 
 
 
@@ -40,23 +40,23 @@ Checksum files in this folder may be used to verify:
 
 
 
-\- `../README.md`
+- `../README.md`
 
-\- `../manifests/`
+- `../manifests/`
 
-\- `../metadata/`
+- `../metadata/`
 
-\- `../splits/`
+- `../splits/`
 
-\- `../annotations/`
+- `../annotations/`
 
-\- `../reconstruct\_coco.py`
+- `../reconstruct_coco.py`
 
-\- `../scripts/`
+- `../scripts/`
 
 
 
-\## What is NOT covered here
+## What is NOT covered here
 
 
 
@@ -64,11 +64,11 @@ This folder is not intended to provide checksums for:
 
 
 
-\- original MS-COCO image files
+- original MS-COCO image files
 
-\- blanket packaged cropped image subsets
+- blanket packaged cropped image subsets
 
-\- preview images or thumbnails
+- preview images or thumbnails
 
 
 
@@ -76,7 +76,7 @@ Those image files are not the primary public release artifacts for this subset.
 
 
 
-\## Notes
+## Notes
 
 
 
@@ -84,9 +84,9 @@ If checksum files are added later, this folder should make clear:
 
 
 
-\- which released files are covered
+- which released files are covered
 
-\- which checksum algorithm is used
+- which checksum algorithm is used
 
-\- which checksum file is the canonical public integrity record
+- which checksum file is the canonical public integrity record
 

@@ -1,20 +1,20 @@
-\# COCO PottedPlant Metadata
+# COCO PottedPlant Metadata
 
 
 
-This folder contains the subset-level metadata files for the \*\*COCO PottedPlant\*\* subset.
+This folder contains the subset-level metadata files for the **COCO PottedPlant** subset.
 
 
 
-\## Purpose
+## Purpose
 
 
 
-Because this subset is released in \*\*metadata / reconstruction-first form\*\*, metadata files in this folder provide the high-level structured description of the released subset without assuming blanket redistribution of the underlying upstream image files.
+Because this subset is released in **metadata / reconstruction-first form**, metadata files in this folder provide the high-level structured description of the released subset without assuming blanket redistribution of the underlying upstream image files.
 
 
 
-\## Intended contents
+## Intended contents
 
 
 
@@ -22,19 +22,19 @@ This folder is intended to contain subset-level metadata such as:
 
 
 
-\- summary JSON files
+- summary JSON files
 
-\- subset statistics
+- subset statistics
 
-\- release-mode descriptors
+- release-mode descriptors
 
-\- class mapping information
+- class mapping information
 
-\- references to the canonical public manifest
+- references to the canonical public manifest
 
 
 
-\## Relationship to other files
+## Relationship to other files
 
 
 
@@ -42,19 +42,19 @@ The metadata files in this folder should remain consistent with:
 
 
 
-\- `../README.md`
+- `../README.md`
 
-\- `../manifests/coco\_pottedplant\_manifest.csv`
+- `../manifests/coco_pottedplant_manifest.csv`
 
-\- `../splits/`
+- `../splits/`
 
-\- `../annotations/`
+- `../annotations/`
 
-\- `../reconstruct\_coco.py`
+- `../reconstruct_coco.py`
 
 
 
-\## What metadata should describe
+## What metadata should describe
 
 
 
@@ -62,27 +62,27 @@ Subset-level metadata should document:
 
 
 
-\- subset name
+- subset name
 
-\- release mode
+- release mode
 
-\- class mapping
+- class mapping
 
-\- expected crop size
+- expected crop size
 
-\- source dataset and source category
+- source dataset and source category
 
-\- per-instance crop construction assumptions
+- per-instance crop construction assumptions
 
-\- split counts
+- split counts
 
-\- links to canonical manifest files
+- links to canonical manifest files
 
-\- notes on upstream dependency and redistribution constraints
+- notes on upstream dependency and redistribution constraints
 
 
 
-\## What does NOT belong here
+## What does NOT belong here
 
 
 
@@ -90,17 +90,17 @@ This folder should not contain:
 
 
 
-\- original MS-COCO image files
+- original MS-COCO image files
 
-\- blanket packaged image crops
+- blanket packaged image crops
 
-\- preview images or thumbnails
+- preview images or thumbnails
 
-\- image-derived artifacts intended to substitute for the source data
+- image-derived artifacts intended to substitute for the source data
 
 
 
-\## Notes
+## Notes
 
 
 
@@ -112,9 +112,9 @@ See also:
 
 
 
-\- `../../LICENSES/coco\_notice.txt`
+- `../../LICENSES/coco_notice.txt`
 
-\- `../../docs/release\_matrix.md`
+- `../../docs/release_matrix.md`
 
-\- `../../docs/dataset\_card.md`
+- `../../docs/dataset_card.md`
 

@@ -1,16 +1,16 @@
-\# COCO PottedPlant Manifests
+# COCO PottedPlant Manifests
 
 
 
-This folder contains the canonical manifest documentation for the \*\*COCO PottedPlant\*\* subset.
+This folder contains the canonical manifest documentation for the **COCO PottedPlant** subset.
 
 
 
-\## Purpose
+## Purpose
 
 
 
-Because this subset is released in \*\*metadata / reconstruction-first form\*\*, the manifest is one of the key public artifacts.
+Because this subset is released in **metadata / reconstruction-first form**, the manifest is one of the key public artifacts.
 
 
 
@@ -18,7 +18,7 @@ The manifest is intended to describe the released subset in a machine-readable w
 
 
 
-\## What a manifest records
+## What a manifest records
 
 
 
@@ -26,25 +26,25 @@ A COCO PottedPlant manifest should record, for each released sample or subset en
 
 
 
-\- a stable released sample identifier
+- a stable released sample identifier
 
-\- the upstream source image identifier
+- the upstream source image identifier
 
-\- split membership
+- split membership
 
-\- class information
+- class information
 
-\- crop metadata
+- crop metadata
 
-\- bounding-box metadata
+- bounding-box metadata
 
-\- references to any released non-image artifacts
+- references to any released non-image artifacts
 
-\- notes about filtering or processing status
+- notes about filtering or processing status
 
 
 
-\## What a manifest should NOT contain
+## What a manifest should NOT contain
 
 
 
@@ -56,17 +56,17 @@ This folder should not contain:
 
 
 
-\- original MS-COCO image files
+- original MS-COCO image files
 
-\- cropped potted-plant image patches released as a blanket image package
+- cropped potted-plant image patches released as a blanket image package
 
-\- thumbnails or preview images
+- thumbnails or preview images
 
-\- any artifact intended to replicate the image subset itself without regard to upstream image rights
+- any artifact intended to replicate the image subset itself without regard to upstream image rights
 
 
 
-\## Intended manifest role in this repository
+## Intended manifest role in this repository
 
 
 
@@ -74,19 +74,19 @@ The COCO PottedPlant manifest is intended to support:
 
 
 
-\- reproducibility
+- reproducibility
 
-\- split tracking
+- split tracking
 
-\- metadata lookup
+- metadata lookup
 
-\- consistency checks across released annotations and derived artifacts
+- consistency checks across released annotations and derived artifacts
 
-\- preparation / reconstruction workflows used by users who obtain upstream images separately
+- preparation / reconstruction workflows used by users who obtain upstream images separately
 
 
 
-\## Related files
+## Related files
 
 
 
@@ -94,15 +94,15 @@ The manifest layer in this folder should remain consistent with:
 
 
 
-\- `../README.md`
+- `../README.md`
 
-\- `../metadata/`
+- `../metadata/`
 
-\- `../splits/`
+- `../splits/`
 
-\- `../annotations/`
+- `../annotations/`
 
-\- `../reconstruct\_coco.py`
+- `../reconstruct_coco.py`
 
 
 
@@ -110,11 +110,11 @@ See also:
 
 
 
-\- `../../LICENSES/coco\_notice.txt`
+- `../../LICENSES/coco_notice.txt`
 
 
 
-\## Notes
+## Notes
 
 
 
