@@ -8,7 +8,7 @@ This folder contains lightweight utilities for inspecting and preparing public r
 
 This is useful for fixed-budget experiments where users want the same number of records from multiple datasets.
 
-Example:
+### Example: matched subsets across all splits
 
 ```powershell
 python tools\create_matched_manifest_subset.py `
@@ -22,7 +22,7 @@ python tools\create_matched_manifest_subset.py `
     coco=coco_pottedplant\manifests\coco_pottedplant_manifest.csv
 ```
 
-For training-only matched subsets, use a split filter:
+### Example: training-only matched subsets
 
 ```powershell
 python tools\create_matched_manifest_subset.py `
@@ -36,6 +36,8 @@ python tools\create_matched_manifest_subset.py `
     coco=coco_pottedplant\manifests\coco_pottedplant_manifest.csv
 ```
 
+### Outputs
+
 The generated files include:
 
 - one sampled manifest per input dataset
@@ -43,3 +45,31 @@ The generated files include:
 - `README.md`
 
 The sampling is deterministic for a fixed seed.
+
+## Checksum verification
+
+`verify_release_checksums.py` verifies the subset-level SHA256 checksum files included in the public release.
+
+Run from the repository root:
+
+```powershell
+python tools\verify_release_checksums.py
+```
+
+The tool checks:
+
+- `traffic_signs/checksums/traffic_signs_sha256.txt`
+- `cityscapes_pedestrian/checksums/cityscapes_pedestrian_public_sha256.txt`
+- `coco_pottedplant/checksums/coco_pottedplant_public_sha256.txt`
+
+A successful run reports:
+
+```text
+Checksum verification PASSED.
+```
+
+## Notes
+
+These tools operate on public release artifacts.
+
+They do not download upstream datasets and they do not grant rights to Cityscapes or COCO image data.

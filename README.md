@@ -28,6 +28,7 @@ docs/dataset_card.md
 docs/provenance.md
 docs/ethics.md
 docs/faq.md
+docs/checksums.md
 ```
 
 ---
@@ -88,6 +89,16 @@ From the repository root:
 ```bash
 python examples/load_traffic_signs.py
 python examples/validate_traffic_signs.py
+```
+
+### License
+
+The TrafficSigns direct-release subset is released under **Creative Commons Attribution 4.0 International (CC BY 4.0)**.
+
+See:
+
+```text
+LICENSES/traffic_signs_license.txt
 ```
 
 ---
@@ -299,6 +310,43 @@ coco_pottedplant/masks/README.md
 
 ---
 
+## 4. Tools
+
+The `tools/` folder contains lightweight utilities for release inspection and fixed-budget manifest sampling.
+
+### Matched manifest subsets
+
+The matched manifest subset tool supports deterministic fixed-budget comparisons.
+
+Example:
+
+```bash
+python tools/create_matched_manifest_subset.py --seed 42 --n 2156 --stratify-by-split --output-dir matched_manifests/seed42_n2156 --inputs cityscapes=cityscapes_pedestrian/manifests/cityscapes_pedestrian_manifest.csv traffic=traffic_signs/metadata/traffic_signs_manifest.csv coco=coco_pottedplant/manifests/coco_pottedplant_manifest.csv
+```
+
+### Checksum verification
+
+To verify public release artifact checksums, run:
+
+```bash
+python tools/verify_release_checksums.py
+```
+
+Expected result:
+
+```text
+Checksum verification PASSED.
+```
+
+See:
+
+```text
+tools/README.md
+docs/checksums.md
+```
+
+---
+
 ## Repository structure
 
 ```text
@@ -324,6 +372,7 @@ docs/release_matrix.md
 docs/provenance.md
 docs/ethics.md
 docs/faq.md
+docs/checksums.md
 ```
 
 ---
@@ -351,7 +400,13 @@ Citation metadata is provided in:
 CITATION.cff
 ```
 
-A DOI-backed archival release should be added before or at submission time.
+DOI:
+
+```text
+https://doi.org/10.5281/zenodo.20340519
+```
+
+A DOI-backed archival release is prepared through Zenodo.
 
 ---
 
@@ -365,7 +420,12 @@ LICENSES/cityscapes_notice.txt
 LICENSES/coco_notice.txt
 ```
 
-Users are responsible for complying with upstream dataset terms when reconstructing Cityscapes-derived or COCO-derived subsets.
+Summary:
+
+- TrafficSigns direct-release data is released under CC BY 4.0.
+- Cityscapes--Pedestrian does not redistribute Cityscapes images or derived crop images.
+- COCO PottedPlant does not assume blanket redistribution rights for all COCO-derived cropped images.
+- Users are responsible for complying with upstream dataset terms when reconstructing Cityscapes-derived or COCO-derived subsets.
 
 ---
 
@@ -384,4 +444,4 @@ This collection is intended for research on:
 
 ## Status
 
-This repository is under active preparation as the public release companion for the Object-Centric Low-Data Datasets resource paper.
+This repository is the public release companion for the Object-Centric Low-Data Datasets resource paper.
