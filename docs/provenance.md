@@ -513,3 +513,9 @@ coco_pottedplant/annotations/coco_pottedplant_boxes.csv
 ```
 
 If manifests or annotation CSVs are regenerated, checksum files should also be regenerated.
+
+### TrafficSigns annotation provenance
+
+TrafficSigns uses a detector-assisted annotation workflow. Candidate bounding boxes for traffic-sign-related categories were generated using YOLOv5x and manually reviewed before release.
+
+The released YOLO-format labels should be treated as the canonical reviewed annotation layer for the direct-release TrafficSigns subset, not as raw detector output.

@@ -1,4 +1,4 @@
-# TrafficSigns Annotations
+﻿# TrafficSigns Annotations
 
 This folder contains the annotation-level documentation for the **TrafficSigns** subset.
 
@@ -6,14 +6,14 @@ This folder contains the annotation-level documentation for the **TrafficSigns**
 
 This folder stores:
 
-- `classes.txt` — the class mapping for the subset
-- this `README.md` file — documentation for the annotation format and layout
+- `classes.txt` â€” the class mapping for the subset
+- this `README.md` file â€” documentation for the annotation format and layout
 
 ## Class mapping
 
 The subset uses one merged target class:
 
-- `0` → `TrafficSigns`
+- `0` â†’ `TrafficSigns`
 
 The class definition is stored in:
 
@@ -59,3 +59,11 @@ All coordinates are normalized to the image size and lie in `[0, 1]`.
 - Most TrafficSigns images contain one clearly visible object, but some contain multiple annotated traffic signs.
 - The metadata manifest in `../metadata/traffic_signs_manifest.csv` records the released image path, matching label path, split membership, and number of boxes per image.
 - The canonical split definition is documented in `../splits/README.md`.
+
+## Annotation provenance
+
+The TrafficSigns labels originate from a detector-assisted annotation workflow.
+
+Candidate bounding boxes for `Traffic Sign` and `Damaged Traffic Sign` objects were generated using YOLOv5x and manually reviewed before release.
+
+The released YOLO-format labels are therefore the canonical reviewed annotation layer for this subset, not raw detector output.

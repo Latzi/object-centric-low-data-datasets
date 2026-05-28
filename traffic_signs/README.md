@@ -1,10 +1,10 @@
-# TrafficSigns
+﻿# TrafficSigns
 
 This folder contains the **TrafficSigns** subset of the **Object-Centric Low-Data Datasets** collection.
 
 ## Summary
 
-TrafficSigns is the directly released subset in this repository. It consists of final released `256×256` object-centric crop images derived from larger street-view frames. The original sign-related categories are merged into a single target class used throughout this subset.
+TrafficSigns is the directly released subset in this repository. It consists of final released `256Ã—256` object-centric crop images derived from larger street-view frames. The original sign-related categories are merged into a single target class used throughout this subset.
 
 The subset is organized in a YOLO-compatible structure so that it can be used directly for model training and evaluation.
 
@@ -54,7 +54,7 @@ Additional annotation and split documentation is provided in:
 
 This subset uses a single merged class:
 
-- `0` → `TrafficSigns`
+- `0` â†’ `TrafficSigns`
 
 The class file is stored in:
 
@@ -67,3 +67,9 @@ TrafficSigns is the **direct-release** subset in this collection. Unlike the Cit
 ## Notes
 
 The `Train_Data/` directory is the authoritative source for released images and labels in this subset. Metadata files should remain consistent with the files stored there.
+
+## Annotation provenance
+
+Candidate bounding boxes for the TrafficSigns subset were generated using YOLOv5x for traffic-sign-related categories and manually reviewed before release.
+
+The released YOLO labels should be interpreted as a reviewed annotation layer rather than raw detector output.
