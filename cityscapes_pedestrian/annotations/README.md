@@ -1,4 +1,4 @@
-# Cityscapes--Pedestrian Annotations
+﻿# Cityscapes--Pedestrian Annotations
 
 This folder documents the annotation layer for the **Cityscapes--Pedestrian** subset.
 
@@ -40,6 +40,15 @@ The annotation table should be interpreted together with:
 - `../manifests/cityscapes_pedestrian_manifest.csv`
 - `../metadata/cityscapes_pedestrian_summary.json`
 - `../metadata/pipeline_config_cityscapes.json`
+
+## Manifest vs annotation table
+
+The public manifest and annotation table serve different roles.
+
+- `../manifests/cityscapes_pedestrian_manifest.csv` is sample-level: one row per released public sample record.
+- `cityscapes_pedestrian_boxes.csv` is box-level: one row per pedestrian-related bounding box.
+
+The annotation table alone is not intended to reconstruct image pixels. Local reconstruction also depends on the reconstruction scripts, pipeline configuration, and authorized upstream Cityscapes data.
 
 ## Annotation table format
 

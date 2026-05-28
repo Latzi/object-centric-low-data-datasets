@@ -1,4 +1,4 @@
-# COCO PottedPlant Annotations
+﻿# COCO PottedPlant Annotations
 
 This folder documents the annotation layer for the **COCO PottedPlant** subset.
 
@@ -45,7 +45,7 @@ The annotation table should be interpreted together with:
 
 The current COCO pipeline has two annotation-producing stages.
 
-### Step 01 — Full-image YOLO subset
+### Step 01 â€” Full-image YOLO subset
 
 `01_extract_pottedplant_from_coco_to_yolo.py` reads the official COCO images and annotations, selects the target category, and writes a YOLO-format full-image subset that preserves the original COCO split structure.
 
@@ -56,7 +56,7 @@ YOLO_pottedplant/labels/train/
 YOLO_pottedplant/labels/val/
 ```
 
-### Step 02 — Cropped YOLO subset
+### Step 02 â€” Cropped YOLO subset
 
 `02_create_instance_crops_from_yolo_pottedplant.py` creates `256x256` per-instance crops from the Step 01 subset and writes cropped YOLO labels for those crops.
 
@@ -68,6 +68,15 @@ YOLO_pottedplant_cropped/labels/val/
 ```
 
 The current crop-generation configuration keeps all intersecting potted-plant boxes in the cropped labels so that visible additional potted plants are not left unlabeled.
+
+## Manifest vs annotation table
+
+The public manifest and annotation table serve different roles.
+
+- `../manifests/coco_pottedplant_manifest.csv` is sample-level: one row per released public sample record.
+- `coco_pottedplant_boxes.csv` is box-level: one row per potted-plant bounding box.
+
+The annotation table alone is not intended to reconstruct image pixels. Local reconstruction also depends on the reconstruction scripts, pipeline configuration, and upstream COCO images and annotations.
 
 ## Annotation table format
 

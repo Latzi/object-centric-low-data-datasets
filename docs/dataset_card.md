@@ -1,4 +1,4 @@
-# Dataset Card: Object-Centric Low-Data Datasets
+﻿# Dataset Card: Object-Centric Low-Data Datasets
 
 ## 1. Overview
 
@@ -510,6 +510,10 @@ These annotation tables provide one row per bounding box and support:
 - reconstruction workflows
 
 They do not contain image pixels.
+
+### Manifest and annotation table roles
+
+For reconstruction-first subsets, manifests are sample-level records and annotation CSVs are box-level records. The manifest identifies reconstructed samples and split membership; the annotation CSV lists individual boxes for those samples. Exact local reconstruction also depends on scripts, pipeline configuration, and authorized upstream data. This distinction is important because the public annotation CSVs are release artifacts, but they do not contain image pixels.
 
 ### Metadata layer
 
