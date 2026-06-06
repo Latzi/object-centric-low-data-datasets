@@ -1,73 +1,209 @@
 from __future__ import annotations
 
+import argparse
 import json
+import os
 import random
 import shutil
 from pathlib import Path
 
 
 # ============================================================
-# LOCAL INPUT / OUTPUT PATHS
+# DEFAULT SETTINGS
 # ============================================================
 
-# Change this only if your local processed Cityscapes folder is elsewhere.
-PROCESSED_DIR = Path(r"C:\Users\richm\Downloads\Cityscapes\processed")
+DEFAULT_TRAIN_RATIO = 0.70
+DEFAULT_VAL_RATIO = 0.15
+DEFAULT_TEST_RATIO = 0.15
 
-# Output of script 03_create_yolo_annotations_from_filtered.py
-SOURCE_YOLO_DIR = PROCESSED_DIR / "filtered_yolo"
-SOURCE_IMAGES_DIR = SOURCE_YOLO_DIR / "images"
-SOURCE_LABELS_DIR = SOURCE_YOLO_DIR / "labels"
-
-# New local training-ready output
-OUTPUT_DIR = PROCESSED_DIR / "Train_Data"
-OUT_IMAGES_TRAIN = OUTPUT_DIR / "images" / "train"
-OUT_IMAGES_VAL = OUTPUT_DIR / "images" / "val"
-OUT_LABELS_TRAIN = OUTPUT_DIR / "labels" / "train"
-OUT_LABELS_VAL = OUTPUT_DIR / "labels" / "val"
-OUT_TEST_IMAGES = OUTPUT_DIR / "test" / "images"
-OUT_TEST_LABELS = OUTPUT_DIR / "test" / "labels"
-
-OUTPUT_DATA_YAML = OUTPUT_DIR / "data.yaml"
-OUTPUT_SUMMARY_JSON = OUTPUT_DIR / "split_summary.json"
-OUTPUT_CLASSES_FILE = OUTPUT_DIR / "classes.txt"
-
-# ============================================================
-# SPLIT SETTINGS
-# ============================================================
-
-TRAIN_RATIO = 0.70
-VAL_RATIO = 0.15
-TEST_RATIO = 0.15
-
-RANDOM_SEED = 42
-CLEAR_OUTPUT_ON_RUN = True
+DEFAULT_RANDOM_SEED = 42
+DEFAULT_CLEAR_OUTPUT_ON_RUN = True
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp"}
 
-# Public standardized merged class name
-STANDARDIZED_CLASS_NAME = "pedestrian"
+DEFAULT_STANDARDIZED_CLASS_NAME = "pedestrian"
 
 
-def ensure_ratios_valid() -> None:
-    total = TRAIN_RATIO + VAL_RATIO + TEST_RATIO
+# ============================================================
+# ARGUMENTS
+# ============================================================
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description=(
+            "Create a YOLO train/validation/test folder structure from the "
+            "local Cityscapes--Pedestrian filtered_yolo output."
+        )
+    )
+
+    parser.add_argument(
+        "--processed-dir",
+        default=os.environ.get("CITYSCAPES_PROCESSED_DIR"),
+        help=(
+            "Path to the local processed Cityscapes--Pedestrian folder. "
+            "Default source/output paths are derived from this folder. "
+            "You may also set CITYSCAPES_PROCESSED_DIR."
+        ),
+    )
+
+    parser.add_argument(
+        "--source-yolo-dir",
+        default=os.environ.get("CITYSCAPES_FILTERED_YOLO_DIR"),
+        help=(
+            "Path to the local filtered_yolo folder produced by script 03. "
+            "Expected contents: images/, labels/. "
+            "Default: PROCESSED_DIR/filtered_yolo. "
+            "You may also set CITYSCAPES_FILTERED_YOLO_DIR."
+        ),
+    )
+
+    parser.add_argument(
+        "--output-dir",
+        default=os.environ.get("CITYSCAPES_TRAIN_DATA_DIR"),
+        help=(
+            "Output folder for the YOLO Train_Data structure. "
+            "Default: PROCESSED_DIR/Train_Data. "
+            "You may also set CITYSCAPES_TRAIN_DATA_DIR."
+        ),
+    )
+
+    parser.add_argument(
+        "--train-ratio",
+        type=float,
+        default=DEFAULT_TRAIN_RATIO,
+        help="Training split ratio. Default: 0.70.",
+    )
+
+    parser.add_argument(
+        "--val-ratio",
+        type=float,
+        default=DEFAULT_VAL_RATIO,
+        help="Validation split ratio. Default: 0.15.",
+    )
+
+    parser.add_argument(
+        "--test-ratio",
+        type=float,
+        default=DEFAULT_TEST_RATIO,
+        help="Test split ratio. Default: 0.15.",
+    )
+
+    parser.add_argument(
+        "--random-seed",
+        type=int,
+        default=DEFAULT_RANDOM_SEED,
+        help="Random seed used for splitting. Default: 42.",
+    )
+
+    parser.add_argument(
+        "--standardized-class-name",
+        default=DEFAULT_STANDARDIZED_CLASS_NAME,
+        help="Class name written to classes.txt and data.yaml. Default: pedestrian.",
+    )
+
+    parser.add_argument(
+        "--clear-output",
+        dest="clear_output_on_run",
+        action="store_true",
+        default=DEFAULT_CLEAR_OUTPUT_ON_RUN,
+        help="Delete the old output folder before writing. This is the default.",
+    )
+
+    parser.add_argument(
+        "--no-clear-output",
+        dest="clear_output_on_run",
+        action="store_false",
+        help="Do not delete the old output folder before writing.",
+    )
+
+    return parser.parse_args()
+
+
+# ============================================================
+# PATH RESOLUTION AND VALIDATION
+# ============================================================
+
+def resolve_paths(args: argparse.Namespace) -> dict:
+    processed_dir = (
+        Path(args.processed_dir).expanduser().resolve()
+        if args.processed_dir
+        else None
+    )
+
+    if args.source_yolo_dir:
+        source_yolo_dir = Path(args.source_yolo_dir).expanduser().resolve()
+    else:
+        if processed_dir is None:
+            raise RuntimeError(
+                "No source YOLO directory was provided. Pass --source-yolo-dir, "
+                "or pass --processed-dir, or set CITYSCAPES_FILTERED_YOLO_DIR "
+                "or CITYSCAPES_PROCESSED_DIR."
+            )
+
+        source_yolo_dir = processed_dir / "filtered_yolo"
+
+    if args.output_dir:
+        output_dir = Path(args.output_dir).expanduser().resolve()
+    else:
+        if processed_dir is not None:
+            output_dir = processed_dir / "Train_Data"
+        else:
+            output_dir = source_yolo_dir.parent / "Train_Data"
+
+    paths = {
+        "processed_dir": processed_dir,
+        "source_yolo_dir": source_yolo_dir,
+        "source_images_dir": source_yolo_dir / "images",
+        "source_labels_dir": source_yolo_dir / "labels",
+        "output_dir": output_dir,
+        "out_images_train": output_dir / "images" / "train",
+        "out_images_val": output_dir / "images" / "val",
+        "out_labels_train": output_dir / "labels" / "train",
+        "out_labels_val": output_dir / "labels" / "val",
+        "out_test_images": output_dir / "test" / "images",
+        "out_test_labels": output_dir / "test" / "labels",
+        "output_data_yaml": output_dir / "data.yaml",
+        "output_summary_json": output_dir / "split_summary.json",
+        "output_classes_file": output_dir / "classes.txt",
+    }
+
+    return paths
+
+
+def ensure_ratios_valid(train_ratio: float, val_ratio: float, test_ratio: float) -> None:
+    total = train_ratio + val_ratio + test_ratio
+
     if abs(total - 1.0) > 1e-9:
         raise ValueError(f"Split ratios must sum to 1.0, got {total}")
 
 
-def get_image_files(images_dir: Path):
-    if not images_dir.exists():
-        raise FileNotFoundError(f"Missing source image dir: {images_dir}")
+def validate_inputs(paths: dict) -> None:
+    source_images_dir = paths["source_images_dir"]
+    source_labels_dir = paths["source_labels_dir"]
 
+    if not source_images_dir.exists():
+        raise FileNotFoundError(f"Source images folder not found: {source_images_dir}")
+
+    if not source_labels_dir.exists():
+        raise FileNotFoundError(f"Source labels folder not found: {source_labels_dir}")
+
+
+# ============================================================
+# HELPERS
+# ============================================================
+
+def get_image_files(images_dir: Path):
     files = [
-        p for p in images_dir.iterdir()
-        if p.is_file() and p.suffix.lower() in IMAGE_EXTENSIONS
+        path for path in images_dir.iterdir()
+        if path.is_file() and path.suffix.lower() in IMAGE_EXTENSIONS
     ]
-    files.sort(key=lambda p: p.name)
+
+    files.sort(key=lambda path: path.name)
     return files
 
 
-def matching_label_path(image_path: Path) -> Path:
-    return SOURCE_LABELS_DIR / f"{image_path.stem}.txt"
+def matching_label_path(image_path: Path, source_labels_dir: Path) -> Path:
+    return source_labels_dir / f"{image_path.stem}.txt"
 
 
 def safe_copy(src: Path, dst: Path) -> None:
@@ -75,7 +211,10 @@ def safe_copy(src: Path, dst: Path) -> None:
     shutil.copy2(src, dst)
 
 
-def write_data_yaml() -> None:
+def write_data_yaml(
+    output_data_yaml: Path,
+    standardized_class_name: str,
+) -> None:
     text = (
         "path: .\n"
         "train: images/train\n"
@@ -83,91 +222,155 @@ def write_data_yaml() -> None:
         "test: test/images\n"
         "\n"
         "names:\n"
-        f"  0: {STANDARDIZED_CLASS_NAME}\n"
+        f"  0: {standardized_class_name}\n"
     )
-    OUTPUT_DATA_YAML.write_text(text, encoding="utf-8")
+
+    output_data_yaml.write_text(text, encoding="utf-8")
 
 
-def write_classes_file() -> None:
-    OUTPUT_CLASSES_FILE.write_text(f"{STANDARDIZED_CLASS_NAME}\n", encoding="utf-8")
+def write_classes_file(
+    output_classes_file: Path,
+    standardized_class_name: str,
+) -> None:
+    output_classes_file.write_text(
+        f"{standardized_class_name}\n",
+        encoding="utf-8",
+    )
 
+
+def copy_split(
+    files,
+    out_img_dir: Path,
+    out_lbl_dir: Path,
+    source_labels_dir: Path,
+) -> dict:
+    copied_images = 0
+    copied_labels = 0
+    missing_labels = 0
+
+    for img_path in files:
+        lbl_path = matching_label_path(img_path, source_labels_dir)
+
+        safe_copy(img_path, out_img_dir / img_path.name)
+        copied_images += 1
+
+        if lbl_path.exists():
+            safe_copy(lbl_path, out_lbl_dir / lbl_path.name)
+            copied_labels += 1
+        else:
+            # Create an empty YOLO label file if the source label is missing.
+            (out_lbl_dir / f"{img_path.stem}.txt").write_text("", encoding="utf-8")
+            missing_labels += 1
+
+    return {
+        "images": copied_images,
+        "labels": copied_labels,
+        "missing_labels_created_empty": missing_labels,
+    }
+
+
+# ============================================================
+# MAIN
+# ============================================================
 
 def main() -> None:
-    ensure_ratios_valid()
+    args = parse_args()
+    paths = resolve_paths(args)
 
-    if not SOURCE_IMAGES_DIR.exists():
-        raise FileNotFoundError(f"Source images folder not found: {SOURCE_IMAGES_DIR}")
-    if not SOURCE_LABELS_DIR.exists():
-        raise FileNotFoundError(f"Source labels folder not found: {SOURCE_LABELS_DIR}")
+    ensure_ratios_valid(
+        train_ratio=args.train_ratio,
+        val_ratio=args.val_ratio,
+        test_ratio=args.test_ratio,
+    )
 
-    if CLEAR_OUTPUT_ON_RUN and OUTPUT_DIR.exists():
-        shutil.rmtree(OUTPUT_DIR)
+    validate_inputs(paths)
 
-    OUT_IMAGES_TRAIN.mkdir(parents=True, exist_ok=True)
-    OUT_IMAGES_VAL.mkdir(parents=True, exist_ok=True)
-    OUT_LABELS_TRAIN.mkdir(parents=True, exist_ok=True)
-    OUT_LABELS_VAL.mkdir(parents=True, exist_ok=True)
-    OUT_TEST_IMAGES.mkdir(parents=True, exist_ok=True)
-    OUT_TEST_LABELS.mkdir(parents=True, exist_ok=True)
+    source_yolo_dir = paths["source_yolo_dir"]
+    source_images_dir = paths["source_images_dir"]
+    source_labels_dir = paths["source_labels_dir"]
+    output_dir = paths["output_dir"]
 
-    image_files = get_image_files(SOURCE_IMAGES_DIR)
+    print("Cityscapes--Pedestrian YOLO split creation")
+    print("==========================================")
+    print(f"Source YOLO folder:   {source_yolo_dir}")
+    print(f"Source images folder: {source_images_dir}")
+    print(f"Source labels folder: {source_labels_dir}")
+    print(f"Output Train_Data:    {output_dir}")
+    print(f"Train ratio:          {args.train_ratio}")
+    print(f"Val ratio:            {args.val_ratio}")
+    print(f"Test ratio:           {args.test_ratio}")
+    print(f"Random seed:          {args.random_seed}")
+    print(f"Class name:           {args.standardized_class_name}")
+    print(f"Clear output:         {args.clear_output_on_run}")
+
+    if args.clear_output_on_run and output_dir.exists():
+        shutil.rmtree(output_dir)
+
+    paths["out_images_train"].mkdir(parents=True, exist_ok=True)
+    paths["out_images_val"].mkdir(parents=True, exist_ok=True)
+    paths["out_labels_train"].mkdir(parents=True, exist_ok=True)
+    paths["out_labels_val"].mkdir(parents=True, exist_ok=True)
+    paths["out_test_images"].mkdir(parents=True, exist_ok=True)
+    paths["out_test_labels"].mkdir(parents=True, exist_ok=True)
+
+    image_files = get_image_files(source_images_dir)
     total_images = len(image_files)
 
     if total_images == 0:
-        raise RuntimeError("No source images found in filtered_yolo/images")
+        raise RuntimeError(f"No source images found in {source_images_dir}")
 
-    rng = random.Random(RANDOM_SEED)
+    rng = random.Random(args.random_seed)
+
     shuffled = list(image_files)
     rng.shuffle(shuffled)
 
-    n_train = int(total_images * TRAIN_RATIO)
-    n_val = int(total_images * VAL_RATIO)
+    n_train = int(total_images * args.train_ratio)
+    n_val = int(total_images * args.val_ratio)
     n_test = total_images - n_train - n_val
 
     train_files = shuffled[:n_train]
     val_files = shuffled[n_train:n_train + n_val]
     test_files = shuffled[n_train + n_val:]
 
-    def copy_split(files, out_img_dir: Path, out_lbl_dir: Path) -> dict:
-        copied_images = 0
-        copied_labels = 0
-        missing_labels = 0
+    train_stats = copy_split(
+        files=train_files,
+        out_img_dir=paths["out_images_train"],
+        out_lbl_dir=paths["out_labels_train"],
+        source_labels_dir=source_labels_dir,
+    )
 
-        for img_path in files:
-            lbl_path = matching_label_path(img_path)
+    val_stats = copy_split(
+        files=val_files,
+        out_img_dir=paths["out_images_val"],
+        out_lbl_dir=paths["out_labels_val"],
+        source_labels_dir=source_labels_dir,
+    )
 
-            safe_copy(img_path, out_img_dir / img_path.name)
-            copied_images += 1
+    test_stats = copy_split(
+        files=test_files,
+        out_img_dir=paths["out_test_images"],
+        out_lbl_dir=paths["out_test_labels"],
+        source_labels_dir=source_labels_dir,
+    )
 
-            if lbl_path.exists():
-                safe_copy(lbl_path, out_lbl_dir / lbl_path.name)
-                copied_labels += 1
-            else:
-                # Create empty YOLO label file if missing
-                (out_lbl_dir / f"{img_path.stem}.txt").write_text("", encoding="utf-8")
-                missing_labels += 1
+    write_classes_file(
+        output_classes_file=paths["output_classes_file"],
+        standardized_class_name=args.standardized_class_name,
+    )
 
-        return {
-            "images": copied_images,
-            "labels": copied_labels,
-            "missing_labels_created_empty": missing_labels,
-        }
-
-    train_stats = copy_split(train_files, OUT_IMAGES_TRAIN, OUT_LABELS_TRAIN)
-    val_stats = copy_split(val_files, OUT_IMAGES_VAL, OUT_LABELS_VAL)
-    test_stats = copy_split(test_files, OUT_TEST_IMAGES, OUT_TEST_LABELS)
-
-    write_classes_file()
-    write_data_yaml()
+    write_data_yaml(
+        output_data_yaml=paths["output_data_yaml"],
+        standardized_class_name=args.standardized_class_name,
+    )
 
     summary = {
-        "source_yolo_dir": str(SOURCE_YOLO_DIR),
-        "output_dir": str(OUTPUT_DIR),
-        "random_seed": RANDOM_SEED,
+        "source_yolo_dir": str(source_yolo_dir),
+        "output_dir": str(output_dir),
+        "random_seed": args.random_seed,
         "ratios": {
-            "train": TRAIN_RATIO,
-            "val": VAL_RATIO,
-            "test": TEST_RATIO,
+            "train": args.train_ratio,
+            "val": args.val_ratio,
+            "test": args.test_ratio,
         },
         "counts": {
             "total_images": total_images,
@@ -178,29 +381,33 @@ def main() -> None:
         "train_stats": train_stats,
         "val_stats": val_stats,
         "test_stats": test_stats,
-        "standardized_class_name": STANDARDIZED_CLASS_NAME,
+        "standardized_class_name": args.standardized_class_name,
         "notes": [
-            "This script creates a local authorized YOLO split structure from processed/filtered_yolo.",
-            "It does not publish or redistribute Cityscapes-derived images through the public repository."
-        ]
+            "This script creates a local authorized YOLO split structure from filtered_yolo.",
+            "It does not publish or redistribute Cityscapes-derived images through the public repository.",
+        ],
     }
 
-    OUTPUT_SUMMARY_JSON.write_text(json.dumps(summary, indent=2), encoding="utf-8")
+    paths["output_summary_json"].write_text(
+        json.dumps(summary, indent=2),
+        encoding="utf-8",
+    )
 
+    print("")
     print("Done.")
-    print("Source YOLO folder:", SOURCE_YOLO_DIR)
-    print("Output Train_Data folder:", OUTPUT_DIR)
+    print(f"Source YOLO folder: {source_yolo_dir}")
+    print(f"Output Train_Data folder: {output_dir}")
     print("")
     print("Counts:")
-    print("  Total:", total_images)
-    print("  Train:", len(train_files))
-    print("  Val:", len(val_files))
-    print("  Test:", len(test_files))
+    print(f"  Total: {total_images}")
+    print(f"  Train: {len(train_files)}")
+    print(f"  Val:   {len(val_files)}")
+    print(f"  Test:  {len(test_files)}")
     print("")
     print("Files written:")
-    print(" ", OUTPUT_DATA_YAML)
-    print(" ", OUTPUT_SUMMARY_JSON)
-    print(" ", OUTPUT_CLASSES_FILE)
+    print(f"  {paths['output_data_yaml']}")
+    print(f"  {paths['output_summary_json']}")
+    print(f"  {paths['output_classes_file']}")
 
 
 if __name__ == "__main__":

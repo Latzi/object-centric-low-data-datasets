@@ -1,49 +1,44 @@
-import os
+import argparse
 import json
-import cv2
+import os
 import random
 import shutil
-from tqdm import tqdm
+
+try:
+    from tqdm import tqdm
+except ImportError:
+    def tqdm(iterable, **kwargs):
+        return iterable
+
+
+cv2 = None
+
 
 # ================================
-# CONFIG
+# DEFAULT SETTINGS
 # ================================
-CITYSCAPES_ROOT = r"C:\Users\richm\Downloads\Cityscapes"
 
-IMAGES_DIR = os.path.join(CITYSCAPES_ROOT, "leftImg8bit_blurred", "leftImg8bit_blurred")
-BBOX_DIR   = os.path.join(CITYSCAPES_ROOT, "gtBbox_cityPersons_trainval", "gtBboxCityPersons")
-COARSE_DIR = os.path.join(CITYSCAPES_ROOT, "gtCoarse", "gtCoarse")
+DEFAULT_SPLITS = ["train", "val"]
 
-OUTPUT_DIR        = os.path.join(CITYSCAPES_ROOT, "processed")
-OUTPUT_IMAGES_DIR = os.path.join(OUTPUT_DIR, "cropped_images")
-OUTPUT_JSON       = os.path.join(OUTPUT_DIR, "cropped_annotations.json")
+DEFAULT_DRAW_BB_DEBUG = True
+DEFAULT_CLEAR_BB_DIR_ON_RUN = True
+DEFAULT_DRAW_BB_LABELS = True
+DEFAULT_DRAW_BB_SOURCE = True
+DEFAULT_DRAW_PERSON_LIKE_ONLY = False
+DEFAULT_MAX_BB_DEBUG_IMAGES = None
+DEFAULT_BB_THICKNESS = 1
+DEFAULT_BB_TEXT_SCALE = 0.35
 
-# Debug / inspection output.
-# If True, the script creates processed/BB and saves copies of the final cropped
-# images with bounding boxes drawn on top.
-DRAW_BB_DEBUG = True
-OUTPUT_BB_DIR = os.path.join(OUTPUT_DIR, "BB")
-CLEAR_BB_DIR_ON_RUN = True
+DEFAULT_FINAL_DATASET_SIZE = 3300
+DEFAULT_PRIORITY_PERSON_COUNT = 1600
 
-# Drawing options for the debug images in processed/BB.
-DRAW_BB_LABELS = True
-DRAW_BB_SOURCE = True          # Shows CP for CityPersons, GC for gtCoarse.
-DRAW_PERSON_LIKE_ONLY = False  # If True, only draw pedestrian/rider/person-like boxes.
-MAX_BB_DEBUG_IMAGES = None     # Set to an integer, e.g. 200, to save only the first 200 debug images.
-BB_THICKNESS = 1
-BB_TEXT_SCALE = 0.35
+DEFAULT_CROP_SIZE = 256
+DEFAULT_NUM_CROPS_PER_IMAGE = 4
+DEFAULT_DESIRED_NUM_CROPS = 4
 
-os.makedirs(OUTPUT_IMAGES_DIR, exist_ok=True)
+DEFAULT_DUPLICATE_IOU_THRESHOLD = 0.50
+DEFAULT_DUPLICATE_OVER_SMALLER_THRESHOLD = 0.80
 
-if DRAW_BB_DEBUG:
-    if CLEAR_BB_DIR_ON_RUN and os.path.isdir(OUTPUT_BB_DIR):
-        shutil.rmtree(OUTPUT_BB_DIR)
-    os.makedirs(OUTPUT_BB_DIR, exist_ok=True)
-
-# Final desired dataset size.
-FINAL_DATASET_SIZE = 3300
-# We want 1600 images with the highest number of person-like objects, then random until 3300.
-PRIORITY_PERSON_COUNT = 1600
 
 # Person-like labels.
 # These are used for crop scoring and crop prioritisation.
@@ -56,7 +51,7 @@ PERSON_LABELS = {
     "rider",
     "person",
     "persongroup",
-    "ridergroup"
+    "ridergroup",
 }
 
 # Group labels are handled carefully during duplicate removal.
@@ -64,32 +59,23 @@ PERSON_LABELS = {
 PERSON_GROUP_LABELS = {
     "person group",
     "persongroup",
-    "ridergroup"
+    "ridergroup",
 }
 
 # Labels to exclude from final crop annotations.
 EXCLUDE_LABELS = {"ego vehicle", "out of roi"}
 
-CROP_SIZE = 256
-NUM_CROPS_PER_IMAGE = 4
-DESIRED_NUM_CROPS = 4
-
-# Duplicate removal thresholds.
-# We compare CityPersons objects against gtCoarse objects after polygons are converted to boxes.
-DUPLICATE_IOU_THRESHOLD = 0.50
-DUPLICATE_OVER_SMALLER_THRESHOLD = 0.80
-
 # Prefer CityPersons boxes over gtCoarse boxes when they describe the same object.
 SOURCE_PRIORITY = {
     "citypersons": 2,
     "gtcoarse": 1,
-    "unknown": 0
+    "unknown": 0,
 }
 
 SOURCE_ABBREVIATION = {
     "citypersons": "CP",
     "gtcoarse": "GC",
-    "unknown": "UNK"
+    "unknown": "UNK",
 }
 
 # COCO-like category data.
@@ -99,6 +85,331 @@ category_counter = 1
 # Runtime counters.
 duplicate_annotations_removed = 0
 
+# Runtime-configured globals used by helper functions.
+CROP_SIZE = DEFAULT_CROP_SIZE
+NUM_CROPS_PER_IMAGE = DEFAULT_NUM_CROPS_PER_IMAGE
+DESIRED_NUM_CROPS = DEFAULT_DESIRED_NUM_CROPS
+DUPLICATE_IOU_THRESHOLD = DEFAULT_DUPLICATE_IOU_THRESHOLD
+DUPLICATE_OVER_SMALLER_THRESHOLD = DEFAULT_DUPLICATE_OVER_SMALLER_THRESHOLD
+
+DRAW_PERSON_LIKE_ONLY = DEFAULT_DRAW_PERSON_LIKE_ONLY
+DRAW_BB_LABELS = DEFAULT_DRAW_BB_LABELS
+DRAW_BB_SOURCE = DEFAULT_DRAW_BB_SOURCE
+BB_THICKNESS = DEFAULT_BB_THICKNESS
+BB_TEXT_SCALE = DEFAULT_BB_TEXT_SCALE
+
+
+# ================================
+# ARGUMENTS
+# ================================
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description=(
+            "Create Cityscapes--Pedestrian 256x256 crops with bounding boxes "
+            "from local Cityscapes, CityPersons, and gtCoarse files."
+        )
+    )
+
+    parser.add_argument(
+        "--cityscapes-root",
+        default=os.environ.get("CITYSCAPES_ROOT"),
+        help=(
+            "Path to the local Cityscapes root. Expected default layout includes "
+            "leftImg8bit_blurred/leftImg8bit_blurred, "
+            "gtBbox_cityPersons_trainval/gtBboxCityPersons, and "
+            "gtCoarse/gtCoarse. You may also set CITYSCAPES_ROOT."
+        ),
+    )
+
+    parser.add_argument(
+        "--images-dir",
+        default=os.environ.get("CITYSCAPES_IMAGES_DIR"),
+        help=(
+            "Optional override for the local Cityscapes blurred image root. "
+            "Default: CITYSCAPES_ROOT/leftImg8bit_blurred/leftImg8bit_blurred."
+        ),
+    )
+
+    parser.add_argument(
+        "--bbox-dir",
+        default=os.environ.get("CITYSCAPES_BBOX_DIR"),
+        help=(
+            "Optional override for the CityPersons bounding-box annotation root. "
+            "Default: CITYSCAPES_ROOT/gtBbox_cityPersons_trainval/gtBboxCityPersons."
+        ),
+    )
+
+    parser.add_argument(
+        "--coarse-dir",
+        default=os.environ.get("CITYSCAPES_COARSE_DIR"),
+        help=(
+            "Optional override for the gtCoarse annotation root. "
+            "Default: CITYSCAPES_ROOT/gtCoarse/gtCoarse."
+        ),
+    )
+
+    parser.add_argument(
+        "--output-dir",
+        default=os.environ.get("CITYSCAPES_OUTPUT_DIR"),
+        help=(
+            "Output directory for processed crops and annotations. "
+            "Default: CITYSCAPES_ROOT/processed."
+        ),
+    )
+
+    parser.add_argument(
+        "--splits",
+        nargs="+",
+        default=DEFAULT_SPLITS,
+        choices=["train", "val"],
+        help="Splits to process. Default: train val.",
+    )
+
+    parser.add_argument(
+        "--crop-size",
+        type=int,
+        default=DEFAULT_CROP_SIZE,
+        help="Square crop size in pixels. Default: 256.",
+    )
+
+    parser.add_argument(
+        "--num-crops-per-image",
+        type=int,
+        default=DEFAULT_NUM_CROPS_PER_IMAGE,
+        help="Maximum candidate crops retained per source image. Default: 4.",
+    )
+
+    parser.add_argument(
+        "--desired-num-crops",
+        type=int,
+        default=DEFAULT_DESIRED_NUM_CROPS,
+        help="Incremental crop passes per base image. Default: 4.",
+    )
+
+    parser.add_argument(
+        "--final-dataset-size",
+        type=int,
+        default=DEFAULT_FINAL_DATASET_SIZE,
+        help="Final number of selected crops. Default: 3300.",
+    )
+
+    parser.add_argument(
+        "--priority-person-count",
+        type=int,
+        default=DEFAULT_PRIORITY_PERSON_COUNT,
+        help=(
+            "Number of highest person-count crops to keep before random fill. "
+            "Default: 1600."
+        ),
+    )
+
+    parser.add_argument(
+        "--duplicate-iou-threshold",
+        type=float,
+        default=DEFAULT_DUPLICATE_IOU_THRESHOLD,
+        help="IoU threshold for cross-source duplicate removal. Default: 0.50.",
+    )
+
+    parser.add_argument(
+        "--duplicate-over-smaller-threshold",
+        type=float,
+        default=DEFAULT_DUPLICATE_OVER_SMALLER_THRESHOLD,
+        help=(
+            "Intersection-over-smaller-box threshold for cross-source duplicate "
+            "removal. Default: 0.80."
+        ),
+    )
+
+    parser.add_argument(
+        "--draw-bb-debug",
+        dest="draw_bb_debug",
+        action="store_true",
+        default=DEFAULT_DRAW_BB_DEBUG,
+        help="Write debug images with bounding boxes. This is the default.",
+    )
+
+    parser.add_argument(
+        "--no-draw-bb-debug",
+        dest="draw_bb_debug",
+        action="store_false",
+        help="Do not write debug images with bounding boxes.",
+    )
+
+    parser.add_argument(
+        "--clear-bb-dir",
+        dest="clear_bb_dir_on_run",
+        action="store_true",
+        default=DEFAULT_CLEAR_BB_DIR_ON_RUN,
+        help="Clear the debug BB directory before running. This is the default.",
+    )
+
+    parser.add_argument(
+        "--no-clear-bb-dir",
+        dest="clear_bb_dir_on_run",
+        action="store_false",
+        help="Do not clear the debug BB directory before running.",
+    )
+
+    parser.add_argument(
+        "--draw-bb-labels",
+        dest="draw_bb_labels",
+        action="store_true",
+        default=DEFAULT_DRAW_BB_LABELS,
+        help="Draw labels on debug bounding boxes. This is the default.",
+    )
+
+    parser.add_argument(
+        "--no-draw-bb-labels",
+        dest="draw_bb_labels",
+        action="store_false",
+        help="Do not draw labels on debug bounding boxes.",
+    )
+
+    parser.add_argument(
+        "--draw-bb-source",
+        dest="draw_bb_source",
+        action="store_true",
+        default=DEFAULT_DRAW_BB_SOURCE,
+        help="Draw source labels such as CP/GC on debug boxes. This is the default.",
+    )
+
+    parser.add_argument(
+        "--no-draw-bb-source",
+        dest="draw_bb_source",
+        action="store_false",
+        help="Do not draw source labels on debug boxes.",
+    )
+
+    parser.add_argument(
+        "--draw-person-like-only",
+        action="store_true",
+        default=DEFAULT_DRAW_PERSON_LIKE_ONLY,
+        help="Only draw pedestrian/rider/person-like boxes in debug images.",
+    )
+
+    parser.add_argument(
+        "--max-bb-debug-images",
+        type=int,
+        default=DEFAULT_MAX_BB_DEBUG_IMAGES,
+        help="Optional maximum number of debug images to save.",
+    )
+
+    parser.add_argument(
+        "--bb-thickness",
+        type=int,
+        default=DEFAULT_BB_THICKNESS,
+        help="Bounding-box line thickness for debug images. Default: 1.",
+    )
+
+    parser.add_argument(
+        "--bb-text-scale",
+        type=float,
+        default=DEFAULT_BB_TEXT_SCALE,
+        help="Text scale for debug labels. Default: 0.35.",
+    )
+
+    parser.add_argument(
+        "--random-seed",
+        type=int,
+        default=42,
+        help="Random seed for final random crop selection. Default: 42.",
+    )
+
+    return parser.parse_args()
+
+
+def resolve_paths(args):
+    if not args.cityscapes_root and (
+        not args.images_dir or not args.bbox_dir or not args.coarse_dir
+    ):
+        raise RuntimeError(
+            "Provide --cityscapes-root or provide --images-dir, --bbox-dir, "
+            "and --coarse-dir explicitly. You may also set CITYSCAPES_ROOT."
+        )
+
+    cityscapes_root = (
+        os.path.abspath(args.cityscapes_root)
+        if args.cityscapes_root
+        else None
+    )
+
+    images_dir = (
+        os.path.abspath(args.images_dir)
+        if args.images_dir
+        else os.path.join(cityscapes_root, "leftImg8bit_blurred", "leftImg8bit_blurred")
+    )
+
+    bbox_dir = (
+        os.path.abspath(args.bbox_dir)
+        if args.bbox_dir
+        else os.path.join(
+            cityscapes_root,
+            "gtBbox_cityPersons_trainval",
+            "gtBboxCityPersons",
+        )
+    )
+
+    coarse_dir = (
+        os.path.abspath(args.coarse_dir)
+        if args.coarse_dir
+        else os.path.join(cityscapes_root, "gtCoarse", "gtCoarse")
+    )
+
+    output_dir = (
+        os.path.abspath(args.output_dir)
+        if args.output_dir
+        else os.path.join(cityscapes_root, "processed")
+    )
+
+    return cityscapes_root, images_dir, bbox_dir, coarse_dir, output_dir
+
+
+def validate_inputs(images_dir, bbox_dir, coarse_dir, splits):
+    for path_name, path_value in [
+        ("images_dir", images_dir),
+        ("bbox_dir", bbox_dir),
+        ("coarse_dir", coarse_dir),
+    ]:
+        if not os.path.isdir(path_value):
+            raise FileNotFoundError(f"{path_name} does not exist: {path_value}")
+
+    for split in splits:
+        split_images = os.path.join(images_dir, split)
+        split_bbox = os.path.join(bbox_dir, split)
+        split_coarse = os.path.join(coarse_dir, split)
+
+        if not os.path.isdir(split_images):
+            raise FileNotFoundError(
+                f"Image split directory does not exist for '{split}': {split_images}"
+            )
+
+        if not os.path.isdir(split_bbox):
+            raise FileNotFoundError(
+                f"CityPersons bbox split directory does not exist for '{split}': {split_bbox}"
+            )
+
+        if not os.path.isdir(split_coarse):
+            raise FileNotFoundError(
+                f"gtCoarse split directory does not exist for '{split}': {split_coarse}"
+            )
+
+
+def import_cv2():
+    try:
+        import cv2 as cv2_module
+    except ImportError as exc:
+        raise RuntimeError(
+            "OpenCV is required for this script. Install it with: "
+            "pip install opencv-python"
+        ) from exc
+
+    return cv2_module
+
+
+# ================================
+# HELPERS
+# ================================
 
 def update_category_map(label):
     """Add label to global category map if not present."""
@@ -363,373 +674,467 @@ def draw_annotations_on_crop(image_bgr, annotations, id_to_label):
     return debug_img
 
 
-# ================================
-# 1) Build category map
-# ================================
-print("Building category map from CityPersons + gtCoarse...")
-for split in ["train", "val"]:
-    sub_bbox_dir = os.path.join(BBOX_DIR, split)
-    sub_coarse_dir = os.path.join(COARSE_DIR, split)
-    if not (os.path.isdir(sub_bbox_dir) and os.path.isdir(sub_coarse_dir)):
-        continue
 
-    for city in sorted(os.listdir(sub_bbox_dir)):
-        cb_dir = os.path.join(sub_bbox_dir, city)
-        if not os.path.isdir(cb_dir):
+
+# ================================
+# MAIN
+# ================================
+
+def main():
+    global cv2
+    global category_id_map
+    global category_counter
+    global duplicate_annotations_removed
+    global CROP_SIZE
+    global NUM_CROPS_PER_IMAGE
+    global DESIRED_NUM_CROPS
+    global DUPLICATE_IOU_THRESHOLD
+    global DUPLICATE_OVER_SMALLER_THRESHOLD
+    global DRAW_PERSON_LIKE_ONLY
+    global DRAW_BB_LABELS
+    global DRAW_BB_SOURCE
+    global BB_THICKNESS
+    global BB_TEXT_SCALE
+
+    args = parse_args()
+
+    random.seed(args.random_seed)
+
+    (
+        CITYSCAPES_ROOT,
+        IMAGES_DIR,
+        BBOX_DIR,
+        COARSE_DIR,
+        OUTPUT_DIR,
+    ) = resolve_paths(args)
+
+    validate_inputs(
+        images_dir=IMAGES_DIR,
+        bbox_dir=BBOX_DIR,
+        coarse_dir=COARSE_DIR,
+        splits=args.splits,
+    )
+
+    cv2 = import_cv2()
+
+    SPLITS = args.splits
+    OUTPUT_IMAGES_DIR = os.path.join(OUTPUT_DIR, "cropped_images")
+    OUTPUT_JSON = os.path.join(OUTPUT_DIR, "cropped_annotations.json")
+    OUTPUT_BB_DIR = os.path.join(OUTPUT_DIR, "BB")
+
+    DRAW_BB_DEBUG = args.draw_bb_debug
+    CLEAR_BB_DIR_ON_RUN = args.clear_bb_dir_on_run
+    MAX_BB_DEBUG_IMAGES = args.max_bb_debug_images
+
+    FINAL_DATASET_SIZE = args.final_dataset_size
+    PRIORITY_PERSON_COUNT = args.priority_person_count
+
+    CROP_SIZE = args.crop_size
+    NUM_CROPS_PER_IMAGE = args.num_crops_per_image
+    DESIRED_NUM_CROPS = args.desired_num_crops
+
+    DUPLICATE_IOU_THRESHOLD = args.duplicate_iou_threshold
+    DUPLICATE_OVER_SMALLER_THRESHOLD = args.duplicate_over_smaller_threshold
+
+    DRAW_PERSON_LIKE_ONLY = args.draw_person_like_only
+    DRAW_BB_LABELS = args.draw_bb_labels
+    DRAW_BB_SOURCE = args.draw_bb_source
+    BB_THICKNESS = args.bb_thickness
+    BB_TEXT_SCALE = args.bb_text_scale
+
+    category_id_map = {}
+    category_counter = 1
+    duplicate_annotations_removed = 0
+
+    os.makedirs(OUTPUT_IMAGES_DIR, exist_ok=True)
+
+    if DRAW_BB_DEBUG:
+        if CLEAR_BB_DIR_ON_RUN and os.path.isdir(OUTPUT_BB_DIR):
+            shutil.rmtree(OUTPUT_BB_DIR)
+        os.makedirs(OUTPUT_BB_DIR, exist_ok=True)
+
+    print("Cityscapes--Pedestrian crop generation")
+    print("======================================")
+    print(f"Cityscapes root:        {CITYSCAPES_ROOT or '[custom paths]'}")
+    print(f"Images dir:             {IMAGES_DIR}")
+    print(f"CityPersons bbox dir:   {BBOX_DIR}")
+    print(f"gtCoarse dir:           {COARSE_DIR}")
+    print(f"Output dir:             {OUTPUT_DIR}")
+    print(f"Splits:                 {SPLITS}")
+    print(f"Crop size:              {CROP_SIZE}")
+    print(f"Final dataset size:     {FINAL_DATASET_SIZE}")
+    print(f"Draw BB debug images:   {DRAW_BB_DEBUG}")
+
+    # ================================
+    # 1) Build category map
+    # ================================
+    print("Building category map from CityPersons + gtCoarse...")
+    for split in SPLITS:
+        sub_bbox_dir = os.path.join(BBOX_DIR, split)
+        sub_coarse_dir = os.path.join(COARSE_DIR, split)
+        if not (os.path.isdir(sub_bbox_dir) and os.path.isdir(sub_coarse_dir)):
             continue
 
-        for annf in sorted(os.listdir(cb_dir)):
-            if annf.endswith(".json"):
-                with open(os.path.join(cb_dir, annf), "r") as f:
-                    data = json.load(f)
-                for o in data.get("objects", []):
-                    update_category_map(o.get("label", ""))
+        for city in sorted(os.listdir(sub_bbox_dir)):
+            cb_dir = os.path.join(sub_bbox_dir, city)
+            if not os.path.isdir(cb_dir):
+                continue
 
-        cc_dir = os.path.join(sub_coarse_dir, city)
-        if os.path.isdir(cc_dir):
-            for annf in sorted(os.listdir(cc_dir)):
+            for annf in sorted(os.listdir(cb_dir)):
                 if annf.endswith(".json"):
-                    with open(os.path.join(cc_dir, annf), "r") as f:
+                    with open(os.path.join(cb_dir, annf), "r") as f:
                         data = json.load(f)
                     for o in data.get("objects", []):
                         update_category_map(o.get("label", ""))
 
-print(f"Found {len(category_id_map)} categories in total.")
-id_to_label = {v: k for (k, v) in category_id_map.items()}
+            cc_dir = os.path.join(sub_coarse_dir, city)
+            if os.path.isdir(cc_dir):
+                for annf in sorted(os.listdir(cc_dir)):
+                    if annf.endswith(".json"):
+                        with open(os.path.join(cc_dir, annf), "r") as f:
+                            data = json.load(f)
+                        for o in data.get("objects", []):
+                            update_category_map(o.get("label", ""))
 
-# ================================
-# 2) Generate up to 4 crops per image
-# ================================
-print("\nGenerating up to 4 best crops from each image in memory...")
+    print(f"Found {len(category_id_map)} categories in total.")
+    id_to_label = {v: k for (k, v) in category_id_map.items()}
 
-all_crops = []
+    # ================================
+    # 2) Generate up to 4 crops per image
+    # ================================
+    print("\nGenerating up to 4 best crops from each image in memory...")
 
-for split in ["train", "val"]:
-    images_dir = os.path.join(IMAGES_DIR, split)
-    sub_bbox = os.path.join(BBOX_DIR, split)
-    sub_coarse = os.path.join(COARSE_DIR, split)
-    if not (os.path.isdir(images_dir) and os.path.isdir(sub_bbox) and os.path.isdir(sub_coarse)):
-        print(f"Skipping {split}: missing data.")
-        continue
+    all_crops = []
 
-    city_list = sorted(os.listdir(images_dir))
-    for city in tqdm(city_list, desc=f"Processing {split}"):
-        city_img_dir = os.path.join(images_dir, city)
-        cb_dir = os.path.join(sub_bbox, city)
-        cc_dir = os.path.join(sub_coarse, city)
-        if not (os.path.isdir(city_img_dir) and os.path.isdir(cb_dir) and os.path.isdir(cc_dir)):
+    for split in SPLITS:
+        images_dir = os.path.join(IMAGES_DIR, split)
+        sub_bbox = os.path.join(BBOX_DIR, split)
+        sub_coarse = os.path.join(COARSE_DIR, split)
+        if not (os.path.isdir(images_dir) and os.path.isdir(sub_bbox) and os.path.isdir(sub_coarse)):
+            print(f"Skipping {split}: missing data.")
             continue
 
-        image_files = [f for f in sorted(os.listdir(city_img_dir)) if f.endswith(".jpg")]
-        for imgf in image_files:
-            base_name = imgf.replace("_leftImg8bit_blurred.jpg", "")
-            bbox_json = base_name + "_gtBboxCityPersons.json"
-            coarse_json = base_name + "_gtCoarse_polygons.json"
-            pathB = os.path.join(cb_dir, bbox_json)
-            pathC = os.path.join(cc_dir, coarse_json)
-
-            if not (os.path.isfile(pathB) or os.path.isfile(pathC)):
+        city_list = sorted(os.listdir(images_dir))
+        for city in tqdm(city_list, desc=f"Processing {split}"):
+            city_img_dir = os.path.join(images_dir, city)
+            cb_dir = os.path.join(sub_bbox, city)
+            cc_dir = os.path.join(sub_coarse, city)
+            if not (os.path.isdir(city_img_dir) and os.path.isdir(cb_dir) and os.path.isdir(cc_dir)):
                 continue
 
-            img_path = os.path.join(city_img_dir, imgf)
-            image = cv2.imread(img_path)
-            if image is None:
-                continue
-            H, W, _ = image.shape
+            image_files = [f for f in sorted(os.listdir(city_img_dir)) if f.endswith(".jpg")]
+            for imgf in image_files:
+                base_name = imgf.replace("_leftImg8bit_blurred.jpg", "")
+                bbox_json = base_name + "_gtBboxCityPersons.json"
+                coarse_json = base_name + "_gtCoarse_polygons.json"
+                pathB = os.path.join(cb_dir, bbox_json)
+                pathC = os.path.join(cc_dir, coarse_json)
 
-            # Gather objects and tag their source.
-            objects = []
-            if os.path.isfile(pathB):
-                with open(pathB, "r") as f:
-                    data = json.load(f)
-                for obj in data.get("objects", []):
-                    obj_copy = dict(obj)
-                    obj_copy["_source"] = "citypersons"
-                    objects.append(obj_copy)
+                if not (os.path.isfile(pathB) or os.path.isfile(pathC)):
+                    continue
 
-            if os.path.isfile(pathC):
-                with open(pathC, "r") as f:
-                    data = json.load(f)
-                for obj in data.get("objects", []):
-                    obj_copy = dict(obj)
-                    obj_copy["_source"] = "gtcoarse"
-                    objects.append(obj_copy)
+                img_path = os.path.join(city_img_dir, imgf)
+                image = cv2.imread(img_path)
+                if image is None:
+                    continue
+                H, W, _ = image.shape
 
-            # Convert polygons to bboxes and set category IDs.
-            prepared_objects = []
-            for obj in objects:
-                lbl = obj.get("label", "")
-                cid = category_id_map.get(lbl, 999)
-                obj["category_id"] = cid
+                # Gather objects and tag their source.
+                objects = []
+                if os.path.isfile(pathB):
+                    with open(pathB, "r") as f:
+                        data = json.load(f)
+                    for obj in data.get("objects", []):
+                        obj_copy = dict(obj)
+                        obj_copy["_source"] = "citypersons"
+                        objects.append(obj_copy)
 
-                if "polygon" in obj:
-                    obj["bbox"] = polygon_to_bbox(obj["polygon"])
+                if os.path.isfile(pathC):
+                    with open(pathC, "r") as f:
+                        data = json.load(f)
+                    for obj in data.get("objects", []):
+                        obj_copy = dict(obj)
+                        obj_copy["_source"] = "gtcoarse"
+                        objects.append(obj_copy)
 
-                if "bbox" not in obj:
-                    obj["bbox"] = [0, 0, 0, 0]
-
-                x, y, w, h = obj["bbox"]
-                if w > 0 and h > 0:
-                    prepared_objects.append(obj)
-
-            # Remove likely duplicates between CityPersons and gtCoarse before crop scoring.
-            objects = deduplicate_cross_source_objects(prepared_objects)
-
-            # Find best up to 4 crops.
-            best = get_best_crops(W, H, objects, topN=NUM_CROPS_PER_IMAGE)
-            if not best:
-                continue
-
-            crop_entries = []
-            for (cx, cy) in best:
-                crop_anns = []
-
+                # Convert polygons to bboxes and set category IDs.
+                prepared_objects = []
                 for obj in objects:
+                    lbl = obj.get("label", "")
+                    cid = category_id_map.get(lbl, 999)
+                    obj["category_id"] = cid
+
+                    if "polygon" in obj:
+                        obj["bbox"] = polygon_to_bbox(obj["polygon"])
+
+                    if "bbox" not in obj:
+                        obj["bbox"] = [0, 0, 0, 0]
+
                     x, y, w, h = obj["bbox"]
-                    if w <= 0 or h <= 0:
-                        continue
+                    if w > 0 and h > 0:
+                        prepared_objects.append(obj)
 
-                    # Partial overlap with crop.
-                    left = x
-                    right = x + w
-                    top = y
-                    bottom = y + h
+                # Remove likely duplicates between CityPersons and gtCoarse before crop scoring.
+                objects = deduplicate_cross_source_objects(prepared_objects)
 
-                    c_left = cx
-                    c_right = cx + CROP_SIZE
-                    c_top = cy
-                    c_bot = cy + CROP_SIZE
+                # Find best up to 4 crops.
+                best = get_best_crops(W, H, objects, topN=NUM_CROPS_PER_IMAGE)
+                if not best:
+                    continue
 
-                    inter_left = max(left, c_left)
-                    inter_right = min(right, c_right)
-                    inter_top = max(top, c_top)
-                    inter_bottom = min(bottom, c_bot)
+                crop_entries = []
+                for (cx, cy) in best:
+                    crop_anns = []
 
-                    inter_w = inter_right - inter_left
-                    inter_h = inter_bottom - inter_top
+                    for obj in objects:
+                        x, y, w, h = obj["bbox"]
+                        if w <= 0 or h <= 0:
+                            continue
 
-                    if inter_w > 0 and inter_h > 0:
-                        adj_x = inter_left - c_left
-                        adj_y = inter_top - c_top
-                        cat_id = obj["category_id"]
+                        # Partial overlap with crop.
+                        left = x
+                        right = x + w
+                        top = y
+                        bottom = y + h
 
-                        crop_anns.append({
-                            "category_id": cat_id,
-                            "bbox": [int(adj_x), int(adj_y), int(inter_w), int(inter_h)],
-                            "area": int(inter_w * inter_h),
-                            "iscrowd": 0,
-                            "_source": obj.get("_source", "unknown")
+                        c_left = cx
+                        c_right = cx + CROP_SIZE
+                        c_top = cy
+                        c_bot = cy + CROP_SIZE
+
+                        inter_left = max(left, c_left)
+                        inter_right = min(right, c_right)
+                        inter_top = max(top, c_top)
+                        inter_bottom = min(bottom, c_bot)
+
+                        inter_w = inter_right - inter_left
+                        inter_h = inter_bottom - inter_top
+
+                        if inter_w > 0 and inter_h > 0:
+                            adj_x = inter_left - c_left
+                            adj_y = inter_top - c_top
+                            cat_id = obj["category_id"]
+
+                            crop_anns.append({
+                                "category_id": cat_id,
+                                "bbox": [int(adj_x), int(adj_y), int(inter_w), int(inter_h)],
+                                "area": int(inter_w * inter_h),
+                                "iscrowd": 0,
+                                "_source": obj.get("_source", "unknown")
+                            })
+
+                    if crop_anns:
+                        crop_entries.append({
+                            "cx": cx,
+                            "cy": cy,
+                            "annotations": crop_anns
                         })
 
-                if crop_anns:
-                    crop_entries.append({
-                        "cx": cx,
-                        "cy": cy,
-                        "annotations": crop_anns
+                if crop_entries:
+                    all_crops.append({
+                        "base_img": base_name,
+                        "split": split,
+                        "city": city,
+                        "width": W,
+                        "height": H,
+                        "crops": crop_entries
                     })
 
-            if crop_entries:
-                all_crops.append({
-                    "base_img": base_name,
-                    "split": split,
-                    "city": city,
-                    "width": W,
-                    "height": H,
-                    "crops": crop_entries
+    print(f"Total base images with candidate crops: {len(all_crops)}")
+    print(f"Removed likely duplicate cross-source annotations: {duplicate_annotations_removed}")
+
+    # ================================
+    # 3) Filter out excluded labels, remove crops with fewer than 4 boxes, group by base
+    # ================================
+    print("\nFiltering and grouping by base image name...")
+
+    grouped_by_base = {}
+    for item in all_crops:
+        bimg = item["base_img"]
+        sp = item["split"]
+        cty = item["city"]
+        ow = item["width"]
+        oh = item["height"]
+
+        new_crops = []
+        for c in item["crops"]:
+            filtered_anns = []
+            for ann in c["annotations"]:
+                lbl = id_to_label.get(ann["category_id"], "???")
+                if lbl not in EXCLUDE_LABELS:
+                    filtered_anns.append(ann)
+
+            if len(filtered_anns) >= 4:
+                cc = dict(c)
+                cc["annotations"] = filtered_anns
+                new_crops.append(cc)
+
+        if new_crops:
+            grouped_by_base[bimg] = {
+                "split": sp,
+                "city": cty,
+                "width": ow,
+                "height": oh,
+                "crops": new_crops
+            }
+
+    print(f"Remaining bases with valid crops: {len(grouped_by_base)}")
+
+    # ================================
+    # 4) Sort and select final crops
+    # ================================
+
+    def count_person_likes(anns):
+        count = 0
+        for ann in anns:
+            lbl = str(id_to_label.get(ann["category_id"], "???")).strip().lower()
+            if lbl in PERSON_LABELS:
+                count += 1
+        return count
+
+
+    for bimg, data in grouped_by_base.items():
+        arr = data["crops"]
+        arr.sort(key=lambda c: count_person_likes(c["annotations"]), reverse=True)
+
+    # Incremental approach:
+    # pass k=1 -> top 1 crop from each base
+    # pass k=2 -> top 2 from each base, etc.
+    all_crops_after_incremental = []
+
+    for k in range(1, DESIRED_NUM_CROPS + 1):
+        for bimg, rec in grouped_by_base.items():
+            arr = rec["crops"]
+            if len(arr) >= k:
+                chosen = arr[k - 1]
+                all_crops_after_incremental.append({
+                    "base_img": bimg,
+                    "split": rec["split"],
+                    "city": rec["city"],
+                    "width": rec["width"],
+                    "height": rec["height"],
+                    "crop_x": chosen["cx"],
+                    "crop_y": chosen["cy"],
+                    "annotations": chosen["annotations"]
                 })
 
-print(f"Total base images with candidate crops: {len(all_crops)}")
-print(f"Removed likely duplicate cross-source annotations: {duplicate_annotations_removed}")
+        if len(all_crops_after_incremental) >= FINAL_DATASET_SIZE:
+            break
 
-# ================================
-# 3) Filter out excluded labels, remove crops with fewer than 4 boxes, group by base
-# ================================
-print("\nFiltering and grouping by base image name...")
-
-grouped_by_base = {}
-for item in all_crops:
-    bimg = item["base_img"]
-    sp = item["split"]
-    cty = item["city"]
-    ow = item["width"]
-    oh = item["height"]
-
-    new_crops = []
-    for c in item["crops"]:
-        filtered_anns = []
-        for ann in c["annotations"]:
-            lbl = id_to_label.get(ann["category_id"], "???")
-            if lbl not in EXCLUDE_LABELS:
-                filtered_anns.append(ann)
-
-        if len(filtered_anns) >= 4:
-            cc = dict(c)
-            cc["annotations"] = filtered_anns
-            new_crops.append(cc)
-
-    if new_crops:
-        grouped_by_base[bimg] = {
-            "split": sp,
-            "city": cty,
-            "width": ow,
-            "height": oh,
-            "crops": new_crops
-        }
-
-print(f"Remaining bases with valid crops: {len(grouped_by_base)}")
-
-# ================================
-# 4) Sort and select final crops
-# ================================
-
-def count_person_likes(anns):
-    count = 0
-    for ann in anns:
-        lbl = str(id_to_label.get(ann["category_id"], "???")).strip().lower()
-        if lbl in PERSON_LABELS:
-            count += 1
-    return count
+    print(f"After incremental approach, total crops: {len(all_crops_after_incremental)}")
 
 
-for bimg, data in grouped_by_base.items():
-    arr = data["crops"]
-    arr.sort(key=lambda c: count_person_likes(c["annotations"]), reverse=True)
-
-# Incremental approach:
-# pass k=1 -> top 1 crop from each base
-# pass k=2 -> top 2 from each base, etc.
-all_crops_after_incremental = []
-
-for k in range(1, DESIRED_NUM_CROPS + 1):
-    for bimg, rec in grouped_by_base.items():
-        arr = rec["crops"]
-        if len(arr) >= k:
-            chosen = arr[k - 1]
-            all_crops_after_incremental.append({
-                "base_img": bimg,
-                "split": rec["split"],
-                "city": rec["city"],
-                "width": rec["width"],
-                "height": rec["height"],
-                "crop_x": chosen["cx"],
-                "crop_y": chosen["cy"],
-                "annotations": chosen["annotations"]
-            })
-
-    if len(all_crops_after_incremental) >= FINAL_DATASET_SIZE:
-        break
-
-print(f"After incremental approach, total crops: {len(all_crops_after_incremental)}")
+    def count_person_in_crop(c):
+        return sum(
+            1
+            for ann in c["annotations"]
+            if str(id_to_label.get(ann["category_id"], "")).strip().lower() in PERSON_LABELS
+        )
 
 
-def count_person_in_crop(c):
-    return sum(
-        1
-        for ann in c["annotations"]
-        if str(id_to_label.get(ann["category_id"], "")).strip().lower() in PERSON_LABELS
-    )
+    all_crops_after_incremental.sort(key=count_person_in_crop, reverse=True)
 
+    top_person = all_crops_after_incremental[:PRIORITY_PERSON_COUNT]
+    leftover = all_crops_after_incremental[PRIORITY_PERSON_COUNT:]
+    selected = list(top_person)
 
-all_crops_after_incremental.sort(key=count_person_in_crop, reverse=True)
+    if len(selected) < FINAL_DATASET_SIZE:
+        needed = FINAL_DATASET_SIZE - len(selected)
+        random.shuffle(leftover)
+        selected.extend(leftover[:needed])
 
-top_person = all_crops_after_incremental[:PRIORITY_PERSON_COUNT]
-leftover = all_crops_after_incremental[PRIORITY_PERSON_COUNT:]
-selected = list(top_person)
+    if len(selected) > FINAL_DATASET_SIZE:
+        selected = selected[:FINAL_DATASET_SIZE]
 
-if len(selected) < FINAL_DATASET_SIZE:
-    needed = FINAL_DATASET_SIZE - len(selected)
-    random.shuffle(leftover)
-    selected.extend(leftover[:needed])
+    print(f"Final selected crops: {len(selected)}")
 
-if len(selected) > FINAL_DATASET_SIZE:
-    selected = selected[:FINAL_DATASET_SIZE]
+    # ================================
+    # 5) Write images, optional BB debug images, and build COCO JSON
+    # ================================
+    final_images = []
+    final_annotations = []
+    image_id = 1
+    annotation_id = 1
+    debug_images_saved = 0
 
-print(f"Final selected crops: {len(selected)}")
+    for crop in tqdm(selected, desc="Saving final crops"):
+        sp = crop["split"]
+        cty = crop["city"]
+        bimg = crop["base_img"]
+        cx = crop["crop_x"]
+        cy = crop["crop_y"]
 
-# ================================
-# 5) Write images, optional BB debug images, and build COCO JSON
-# ================================
-final_images = []
-final_annotations = []
-image_id = 1
-annotation_id = 1
-debug_images_saved = 0
+        img_file = f"{bimg}_leftImg8bit_blurred.jpg"
+        orig_path = os.path.join(IMAGES_DIR, sp, cty, img_file)
+        orig = cv2.imread(orig_path)
+        if orig is None:
+            continue
 
-for crop in tqdm(selected, desc="Saving final crops"):
-    sp = crop["split"]
-    cty = crop["city"]
-    bimg = crop["base_img"]
-    cx = crop["crop_x"]
-    cy = crop["crop_y"]
+        crop_img = orig[cy:cy + CROP_SIZE, cx:cx + CROP_SIZE]
+        if crop_img.shape[0] != CROP_SIZE or crop_img.shape[1] != CROP_SIZE:
+            continue
 
-    img_file = f"{bimg}_leftImg8bit_blurred.jpg"
-    orig_path = os.path.join(IMAGES_DIR, sp, cty, img_file)
-    orig = cv2.imread(orig_path)
-    if orig is None:
-        continue
+        out_name = f"{bimg}_crop_{image_id}.jpg"
+        out_path = os.path.join(OUTPUT_IMAGES_DIR, out_name)
+        cv2.imwrite(out_path, crop_img)
 
-    crop_img = orig[cy:cy + CROP_SIZE, cx:cx + CROP_SIZE]
-    if crop_img.shape[0] != CROP_SIZE or crop_img.shape[1] != CROP_SIZE:
-        continue
+        # Optional debug image with bounding boxes drawn.
+        if DRAW_BB_DEBUG:
+            if MAX_BB_DEBUG_IMAGES is None or debug_images_saved < MAX_BB_DEBUG_IMAGES:
+                bb_img = draw_annotations_on_crop(crop_img, crop["annotations"], id_to_label)
+                bb_out_path = os.path.join(OUTPUT_BB_DIR, out_name)
+                cv2.imwrite(bb_out_path, bb_img)
+                debug_images_saved += 1
 
-    out_name = f"{bimg}_crop_{image_id}.jpg"
-    out_path = os.path.join(OUTPUT_IMAGES_DIR, out_name)
-    cv2.imwrite(out_path, crop_img)
+        final_images.append({
+            "id": image_id,
+            "file_name": out_name,
+            "width": CROP_SIZE,
+            "height": CROP_SIZE
+        })
 
-    # Optional debug image with bounding boxes drawn.
+        for ann in crop["annotations"]:
+            # Keep the final COCO JSON clean. Do not write debug-only keys such as _source.
+            new_ann = {
+                "id": annotation_id,
+                "image_id": image_id,
+                "category_id": ann["category_id"],
+                "bbox": ann["bbox"],
+                "area": ann["area"],
+                "iscrowd": ann.get("iscrowd", 0)
+            }
+            annotation_id += 1
+            final_annotations.append(new_ann)
+
+        image_id += 1
+
+    final_coco = {
+        "info": {
+            "description": "Cityscapes Crops Filtered with Duplicate Removal and Optional BB Debug Images",
+            "version": "1.1",
+            "year": 2023,
+            "contributor": "Your Name",
+            "date_created": "2023-XX-XX"
+        },
+        "images": final_images,
+        "annotations": final_annotations,
+        "categories": [
+            {"id": cid, "name": lbl}
+            for lbl, cid in category_id_map.items()
+        ]
+    }
+
+    with open(OUTPUT_JSON, "w") as f:
+        json.dump(final_coco, f, indent=4)
+
+    print(f"\nAll done! {len(final_images)} final images saved to: {OUTPUT_IMAGES_DIR}")
+    print(f"{len(final_annotations)} annotations saved to: {OUTPUT_JSON}")
+    print(f"Likely duplicate cross-source annotations removed: {duplicate_annotations_removed}")
+
     if DRAW_BB_DEBUG:
-        if MAX_BB_DEBUG_IMAGES is None or debug_images_saved < MAX_BB_DEBUG_IMAGES:
-            bb_img = draw_annotations_on_crop(crop_img, crop["annotations"], id_to_label)
-            bb_out_path = os.path.join(OUTPUT_BB_DIR, out_name)
-            cv2.imwrite(bb_out_path, bb_img)
-            debug_images_saved += 1
+        print(f"{debug_images_saved} bounding-box debug images saved to: {OUTPUT_BB_DIR}")
+    else:
+        print("Bounding-box debug image output is disabled. Set DRAW_BB_DEBUG = True to enable it.")
 
-    final_images.append({
-        "id": image_id,
-        "file_name": out_name,
-        "width": CROP_SIZE,
-        "height": CROP_SIZE
-    })
-
-    for ann in crop["annotations"]:
-        # Keep the final COCO JSON clean. Do not write debug-only keys such as _source.
-        new_ann = {
-            "id": annotation_id,
-            "image_id": image_id,
-            "category_id": ann["category_id"],
-            "bbox": ann["bbox"],
-            "area": ann["area"],
-            "iscrowd": ann.get("iscrowd", 0)
-        }
-        annotation_id += 1
-        final_annotations.append(new_ann)
-
-    image_id += 1
-
-final_coco = {
-    "info": {
-        "description": "Cityscapes Crops Filtered with Duplicate Removal and Optional BB Debug Images",
-        "version": "1.1",
-        "year": 2023,
-        "contributor": "Your Name",
-        "date_created": "2023-XX-XX"
-    },
-    "images": final_images,
-    "annotations": final_annotations,
-    "categories": [
-        {"id": cid, "name": lbl}
-        for lbl, cid in category_id_map.items()
-    ]
-}
-
-with open(OUTPUT_JSON, "w") as f:
-    json.dump(final_coco, f, indent=4)
-
-print(f"\nAll done! {len(final_images)} final images saved to: {OUTPUT_IMAGES_DIR}")
-print(f"{len(final_annotations)} annotations saved to: {OUTPUT_JSON}")
-print(f"Likely duplicate cross-source annotations removed: {duplicate_annotations_removed}")
-
-if DRAW_BB_DEBUG:
-    print(f"{debug_images_saved} bounding-box debug images saved to: {OUTPUT_BB_DIR}")
-else:
-    print("Bounding-box debug image output is disabled. Set DRAW_BB_DEBUG = True to enable it.")
+if __name__ == "__main__":
+    main()

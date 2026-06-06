@@ -1,66 +1,305 @@
+import argparse
 import os
-import cv2
 import shutil
-from tqdm import tqdm
+from pathlib import Path
+
+try:
+    from tqdm import tqdm
+except ImportError:
+    def tqdm(iterable, **kwargs):
+        return iterable
 
 
 # ============================================================
-# PATH SETUP
+# DEFAULT SETTINGS
 # ============================================================
 
-PROCESSED_DIR = r"C:\Users\richm\Downloads\Cityscapes\processed"
+DEFAULT_CLEAR_BB_FOLDER_ON_RUN = True
+DEFAULT_DRAW_LABELS = True
+DEFAULT_DRAW_CONFIDENCE_IF_PRESENT = False
 
-# This is the YOLO folder created by the previous COCO-to-YOLO script.
-YOLO_DIR = os.path.join(PROCESSED_DIR, "filtered_yolo")
+DEFAULT_BOX_THICKNESS = 2
+DEFAULT_TEXT_SCALE = 0.45
+DEFAULT_TEXT_THICKNESS = 1
 
-YOLO_IMAGES_DIR = os.path.join(YOLO_DIR, "images")
-YOLO_LABELS_DIR = os.path.join(YOLO_DIR, "labels")
-YOLO_CLASSES_FILE = os.path.join(YOLO_DIR, "classes.txt")
+DEFAULT_SAVE_IMAGES_WITHOUT_LABELS = True
+DEFAULT_SAVE_IMAGES_WITH_EMPTY_LABELS = True
 
-# Output folder for inspection images.
-BB_OUTPUT_DIR = os.path.join(YOLO_DIR, "BB")
-
-
-# ============================================================
-# DRAWING SETTINGS
-# ============================================================
-
-# Delete the old BB folder before creating new debug images.
-CLEAR_BB_FOLDER_ON_RUN = True
-
-# Draw class name / class ID text above each box.
-DRAW_LABELS = True
-
-# Draw confidence? YOLO label files from your dataset do not contain confidence,
-# so this should stay False unless your txt files have 6 columns.
-DRAW_CONFIDENCE_IF_PRESENT = False
-
-# Only draw these class IDs.
-# Use None to draw all classes.
-#
-# Example:
-#   DRAW_ONLY_CLASS_IDS = {0}
-#
-DRAW_ONLY_CLASS_IDS = None
-
-# Limit how many images to draw.
-# Use None to draw all images.
-MAX_IMAGES_TO_DRAW = None
-
-# Image extensions to process.
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp"}
 
-# Bounding-box drawing style.
-BOX_THICKNESS = 2
-TEXT_SCALE = 0.45
-TEXT_THICKNESS = 1
 
-# If True, save images even when there is no matching label file.
-# The saved image will just have no boxes.
-SAVE_IMAGES_WITHOUT_LABELS = True
+# ============================================================
+# ARGUMENTS
+# ============================================================
 
-# If True, save images even when the label file exists but has no boxes.
-SAVE_IMAGES_WITH_EMPTY_LABELS = True
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description=(
+            "Draw YOLO bounding boxes on locally generated "
+            "Cityscapes--Pedestrian YOLO images for visual debugging."
+        )
+    )
+
+    parser.add_argument(
+        "--processed-dir",
+        default=os.environ.get("CITYSCAPES_PROCESSED_DIR"),
+        help=(
+            "Path to the local processed Cityscapes--Pedestrian folder. "
+            "Default YOLO folder is PROCESSED_DIR/filtered_yolo. "
+            "You may also set CITYSCAPES_PROCESSED_DIR."
+        ),
+    )
+
+    parser.add_argument(
+        "--yolo-dir",
+        default=os.environ.get("CITYSCAPES_FILTERED_YOLO_DIR"),
+        help=(
+            "Path to the local YOLO folder created by script 03. "
+            "Expected contents: images/, labels/, classes.txt. "
+            "Default: PROCESSED_DIR/filtered_yolo. "
+            "You may also set CITYSCAPES_FILTERED_YOLO_DIR."
+        ),
+    )
+
+    parser.add_argument(
+        "--images-dir",
+        default=None,
+        help=(
+            "Optional explicit path to YOLO images. "
+            "Default: YOLO_DIR/images."
+        ),
+    )
+
+    parser.add_argument(
+        "--labels-dir",
+        default=None,
+        help=(
+            "Optional explicit path to YOLO labels. "
+            "Default: YOLO_DIR/labels."
+        ),
+    )
+
+    parser.add_argument(
+        "--classes-file",
+        default=None,
+        help=(
+            "Optional explicit path to classes.txt. "
+            "Default: YOLO_DIR/classes.txt."
+        ),
+    )
+
+    parser.add_argument(
+        "--bb-output-dir",
+        default=os.environ.get("CITYSCAPES_BB_DEBUG_DIR"),
+        help=(
+            "Output folder for inspection images with bounding boxes. "
+            "Default: YOLO_DIR/BB. You may also set CITYSCAPES_BB_DEBUG_DIR."
+        ),
+    )
+
+    parser.add_argument(
+        "--clear-bb-folder",
+        dest="clear_bb_folder_on_run",
+        action="store_true",
+        default=DEFAULT_CLEAR_BB_FOLDER_ON_RUN,
+        help="Delete the old BB folder before creating new debug images. This is the default.",
+    )
+
+    parser.add_argument(
+        "--no-clear-bb-folder",
+        dest="clear_bb_folder_on_run",
+        action="store_false",
+        help="Do not delete the old BB folder before creating new debug images.",
+    )
+
+    parser.add_argument(
+        "--draw-labels",
+        dest="draw_labels",
+        action="store_true",
+        default=DEFAULT_DRAW_LABELS,
+        help="Draw class name / class ID text above each box. This is the default.",
+    )
+
+    parser.add_argument(
+        "--no-draw-labels",
+        dest="draw_labels",
+        action="store_false",
+        help="Do not draw class labels above boxes.",
+    )
+
+    parser.add_argument(
+        "--draw-confidence-if-present",
+        action="store_true",
+        default=DEFAULT_DRAW_CONFIDENCE_IF_PRESENT,
+        help=(
+            "Draw confidence values when label files contain a sixth confidence column. "
+            "Standard dataset labels normally do not contain confidence values."
+        ),
+    )
+
+    parser.add_argument(
+        "--draw-only-class-ids",
+        nargs="+",
+        type=int,
+        default=None,
+        help=(
+            "Optional list of class IDs to draw. "
+            "Default: draw all classes."
+        ),
+    )
+
+    parser.add_argument(
+        "--max-images-to-draw",
+        type=int,
+        default=None,
+        help=(
+            "Optional maximum number of images to draw. "
+            "Default: draw all images."
+        ),
+    )
+
+    parser.add_argument(
+        "--box-thickness",
+        type=int,
+        default=DEFAULT_BOX_THICKNESS,
+        help="Bounding-box line thickness. Default: 2.",
+    )
+
+    parser.add_argument(
+        "--text-scale",
+        type=float,
+        default=DEFAULT_TEXT_SCALE,
+        help="Text scale for drawn labels. Default: 0.45.",
+    )
+
+    parser.add_argument(
+        "--text-thickness",
+        type=int,
+        default=DEFAULT_TEXT_THICKNESS,
+        help="Text thickness for drawn labels. Default: 1.",
+    )
+
+    parser.add_argument(
+        "--save-images-without-labels",
+        dest="save_images_without_labels",
+        action="store_true",
+        default=DEFAULT_SAVE_IMAGES_WITHOUT_LABELS,
+        help=(
+            "Save images even when there is no matching label file. "
+            "The saved image will simply have no boxes. This is the default."
+        ),
+    )
+
+    parser.add_argument(
+        "--no-save-images-without-labels",
+        dest="save_images_without_labels",
+        action="store_false",
+        help="Skip images that have no matching label file.",
+    )
+
+    parser.add_argument(
+        "--save-images-with-empty-labels",
+        dest="save_images_with_empty_labels",
+        action="store_true",
+        default=DEFAULT_SAVE_IMAGES_WITH_EMPTY_LABELS,
+        help=(
+            "Save images even when the label file exists but contains no boxes. "
+            "This is the default."
+        ),
+    )
+
+    parser.add_argument(
+        "--no-save-images-with-empty-labels",
+        dest="save_images_with_empty_labels",
+        action="store_false",
+        help="Skip images whose label file exists but contains no boxes.",
+    )
+
+    return parser.parse_args()
+
+
+# ============================================================
+# PATH RESOLUTION AND VALIDATION
+# ============================================================
+
+def resolve_paths(args):
+    processed_dir = (
+        Path(args.processed_dir).expanduser().resolve()
+        if args.processed_dir
+        else None
+    )
+
+    if args.yolo_dir:
+        yolo_dir = Path(args.yolo_dir).expanduser().resolve()
+    else:
+        if processed_dir is None:
+            raise RuntimeError(
+                "No YOLO directory was provided. Pass --yolo-dir, "
+                "or pass --processed-dir, or set CITYSCAPES_FILTERED_YOLO_DIR "
+                "or CITYSCAPES_PROCESSED_DIR."
+            )
+
+        yolo_dir = processed_dir / "filtered_yolo"
+
+    if args.images_dir:
+        yolo_images_dir = Path(args.images_dir).expanduser().resolve()
+    else:
+        yolo_images_dir = yolo_dir / "images"
+
+    if args.labels_dir:
+        yolo_labels_dir = Path(args.labels_dir).expanduser().resolve()
+    else:
+        yolo_labels_dir = yolo_dir / "labels"
+
+    if args.classes_file:
+        yolo_classes_file = Path(args.classes_file).expanduser().resolve()
+    else:
+        yolo_classes_file = yolo_dir / "classes.txt"
+
+    if args.bb_output_dir:
+        bb_output_dir = Path(args.bb_output_dir).expanduser().resolve()
+    else:
+        bb_output_dir = yolo_dir / "BB"
+
+    return {
+        "processed_dir": processed_dir,
+        "yolo_dir": yolo_dir,
+        "yolo_images_dir": yolo_images_dir,
+        "yolo_labels_dir": yolo_labels_dir,
+        "yolo_classes_file": yolo_classes_file,
+        "bb_output_dir": bb_output_dir,
+    }
+
+
+def validate_inputs(paths):
+    yolo_images_dir = paths["yolo_images_dir"]
+    yolo_labels_dir = paths["yolo_labels_dir"]
+
+    if not yolo_images_dir.is_dir():
+        raise FileNotFoundError(
+            f"Images folder not found: {yolo_images_dir}"
+        )
+
+    if not yolo_labels_dir.is_dir():
+        raise FileNotFoundError(
+            f"Labels folder not found: {yolo_labels_dir}"
+        )
+
+
+# ============================================================
+# DEPENDENCY LOADING
+# ============================================================
+
+def import_cv2():
+    try:
+        import cv2
+    except ImportError as exc:
+        raise RuntimeError(
+            "OpenCV is required for this script. Install it with: "
+            "pip install opencv-python"
+        ) from exc
+
+    return cv2
 
 
 # ============================================================
@@ -73,22 +312,23 @@ def load_class_names(classes_file):
 
     If classes.txt does not exist, class names will simply be class_0, class_1, etc.
     """
-    if not os.path.exists(classes_file):
+    if not classes_file.exists():
         print(f"Warning: classes.txt not found: {classes_file}")
         return {}
 
     class_names = {}
 
-    with open(classes_file, "r", encoding="utf-8") as f:
+    with classes_file.open("r", encoding="utf-8") as f:
         for idx, line in enumerate(f):
             name = line.strip()
+
             if name:
                 class_names[idx] = name
 
     return class_names
 
 
-def image_to_label_path(image_file_name):
+def image_to_label_path(image_file_name, yolo_labels_dir):
     """
     Convert image filename to matching YOLO label filename.
 
@@ -96,7 +336,7 @@ def image_to_label_path(image_file_name):
         abc.jpg -> abc.txt
     """
     base_name = os.path.splitext(os.path.basename(image_file_name))[0]
-    return os.path.join(YOLO_LABELS_DIR, base_name + ".txt")
+    return yolo_labels_dir / f"{base_name}.txt"
 
 
 def parse_yolo_label_line(line):
@@ -199,7 +439,16 @@ def get_color_for_class(class_id):
     return palette[class_id % len(palette)]
 
 
-def draw_text_with_background(image, text, x, y, color):
+def draw_text_with_background(
+    cv2,
+    image,
+    text,
+    x,
+    y,
+    color,
+    text_scale,
+    text_thickness,
+):
     """
     Draw readable text with a filled background.
     """
@@ -208,8 +457,8 @@ def draw_text_with_background(image, text, x, y, color):
     text_size, baseline = cv2.getTextSize(
         text,
         font,
-        TEXT_SCALE,
-        TEXT_THICKNESS
+        text_scale,
+        text_thickness,
     )
 
     text_width, text_height = text_size
@@ -226,7 +475,7 @@ def draw_text_with_background(image, text, x, y, color):
         (x_text_left, y_text_top),
         (x_text_right, y_text_bottom),
         color,
-        thickness=-1
+        thickness=-1,
     )
 
     cv2.putText(
@@ -234,31 +483,31 @@ def draw_text_with_background(image, text, x, y, color):
         text,
         (x_text_left + 3, y_text_bottom - baseline - 2),
         font,
-        TEXT_SCALE,
+        text_scale,
         (255, 255, 255),
-        TEXT_THICKNESS,
-        cv2.LINE_AA
+        text_thickness,
+        cv2.LINE_AA,
     )
 
 
-def read_yolo_labels(label_path):
+def read_yolo_labels(label_path, draw_only_class_ids):
     """
     Read all valid YOLO annotations from a label file.
     """
     annotations = []
 
-    if not os.path.exists(label_path):
+    if not label_path.exists():
         return annotations
 
-    with open(label_path, "r", encoding="utf-8") as f:
+    with label_path.open("r", encoding="utf-8") as f:
         for line in f:
             ann = parse_yolo_label_line(line)
 
             if ann is None:
                 continue
 
-            if DRAW_ONLY_CLASS_IDS is not None:
-                if ann["class_id"] not in DRAW_ONLY_CLASS_IDS:
+            if draw_only_class_ids is not None:
+                if ann["class_id"] not in draw_only_class_ids:
                     continue
 
             annotations.append(ann)
@@ -268,7 +517,7 @@ def read_yolo_labels(label_path):
 
 def get_image_files(images_dir):
     """
-    Return sorted image files from YOLO_IMAGES_DIR.
+    Return sorted image files from the YOLO images folder.
     """
     image_files = []
 
@@ -286,133 +535,165 @@ def get_image_files(images_dir):
 # MAIN SCRIPT
 # ============================================================
 
-print("Loading class names...")
-class_names = load_class_names(YOLO_CLASSES_FILE)
+def main():
+    args = parse_args()
+    paths = resolve_paths(args)
 
-if class_names:
-    print("Classes found:")
-    for class_id, class_name in class_names.items():
-        print(f"  {class_id}: {class_name}")
-else:
-    print("No classes loaded. Labels will show class IDs only.")
+    validate_inputs(paths)
 
-print("")
+    cv2 = import_cv2()
 
-if CLEAR_BB_FOLDER_ON_RUN and os.path.isdir(BB_OUTPUT_DIR):
-    print(f"Clearing old BB folder: {BB_OUTPUT_DIR}")
-    shutil.rmtree(BB_OUTPUT_DIR)
+    yolo_dir = paths["yolo_dir"]
+    yolo_images_dir = paths["yolo_images_dir"]
+    yolo_labels_dir = paths["yolo_labels_dir"]
+    yolo_classes_file = paths["yolo_classes_file"]
+    bb_output_dir = paths["bb_output_dir"]
 
-os.makedirs(BB_OUTPUT_DIR, exist_ok=True)
+    print("Cityscapes--Pedestrian YOLO bounding-box debug drawing")
+    print("======================================================")
+    print(f"YOLO dir:             {yolo_dir}")
+    print(f"YOLO images dir:      {yolo_images_dir}")
+    print(f"YOLO labels dir:      {yolo_labels_dir}")
+    print(f"YOLO classes file:    {yolo_classes_file}")
+    print(f"BB output dir:        {bb_output_dir}")
+    print(f"Clear BB folder:      {args.clear_bb_folder_on_run}")
+    print(f"Draw labels:          {args.draw_labels}")
+    print(f"Max images to draw:   {args.max_images_to_draw}")
 
-if not os.path.isdir(YOLO_IMAGES_DIR):
-    raise FileNotFoundError(f"Images folder not found: {YOLO_IMAGES_DIR}")
+    print("")
+    print("Loading class names...")
 
-if not os.path.isdir(YOLO_LABELS_DIR):
-    raise FileNotFoundError(f"Labels folder not found: {YOLO_LABELS_DIR}")
+    class_names = load_class_names(yolo_classes_file)
 
-image_files = get_image_files(YOLO_IMAGES_DIR)
+    if class_names:
+        print("Classes found:")
+        for class_id, class_name in class_names.items():
+            print(f"  {class_id}: {class_name}")
+    else:
+        print("No classes loaded. Labels will show class IDs only.")
 
-if MAX_IMAGES_TO_DRAW is not None:
-    image_files = image_files[:MAX_IMAGES_TO_DRAW]
+    print("")
 
-print(f"Images to process: {len(image_files)}")
-print(f"Source images: {YOLO_IMAGES_DIR}")
-print(f"Source labels: {YOLO_LABELS_DIR}")
-print(f"BB output: {BB_OUTPUT_DIR}")
-print("")
+    if args.clear_bb_folder_on_run and bb_output_dir.is_dir():
+        print(f"Clearing old BB folder: {bb_output_dir}")
+        shutil.rmtree(bb_output_dir)
 
-processed_images = 0
-saved_images = 0
-missing_label_files = 0
-empty_label_files = 0
-boxes_drawn = 0
-invalid_images = 0
+    bb_output_dir.mkdir(parents=True, exist_ok=True)
 
-for image_file_name in tqdm(image_files, desc="Drawing YOLO BBs"):
-    image_path = os.path.join(YOLO_IMAGES_DIR, image_file_name)
-    label_path = image_to_label_path(image_file_name)
+    image_files = get_image_files(yolo_images_dir)
 
-    image = cv2.imread(image_path)
+    if args.max_images_to_draw is not None:
+        image_files = image_files[:args.max_images_to_draw]
 
-    if image is None:
-        invalid_images += 1
-        print(f"Warning: could not read image: {image_path}")
-        continue
+    print(f"Images to process: {len(image_files)}")
+    print(f"Source images: {yolo_images_dir}")
+    print(f"Source labels: {yolo_labels_dir}")
+    print(f"BB output: {bb_output_dir}")
+    print("")
 
-    img_height, img_width = image.shape[:2]
+    processed_images = 0
+    saved_images = 0
+    missing_label_files = 0
+    empty_label_files = 0
+    boxes_drawn = 0
+    invalid_images = 0
 
-    label_exists = os.path.exists(label_path)
+    for image_file_name in tqdm(image_files, desc="Drawing YOLO BBs"):
+        image_path = yolo_images_dir / image_file_name
+        label_path = image_to_label_path(image_file_name, yolo_labels_dir)
 
-    if not label_exists:
-        missing_label_files += 1
+        image = cv2.imread(str(image_path))
 
-        if not SAVE_IMAGES_WITHOUT_LABELS:
+        if image is None:
+            invalid_images += 1
+            print(f"Warning: could not read image: {image_path}")
             continue
 
-        output_path = os.path.join(BB_OUTPUT_DIR, image_file_name)
-        cv2.imwrite(output_path, image)
-        saved_images += 1
-        processed_images += 1
-        continue
+        img_height, img_width = image.shape[:2]
 
-    yolo_annotations = read_yolo_labels(label_path)
+        label_exists = label_path.exists()
 
-    if len(yolo_annotations) == 0:
-        empty_label_files += 1
+        if not label_exists:
+            missing_label_files += 1
 
-        if not SAVE_IMAGES_WITH_EMPTY_LABELS:
+            if not args.save_images_without_labels:
+                continue
+
+            output_path = bb_output_dir / image_file_name
+            cv2.imwrite(str(output_path), image)
+            saved_images += 1
+            processed_images += 1
             continue
 
-    for ann in yolo_annotations:
-        bbox = yolo_to_pixel_bbox(ann, img_width, img_height)
-
-        if bbox is None:
-            continue
-
-        class_id = ann["class_id"]
-        x1, y1, x2, y2 = bbox
-
-        color = get_color_for_class(class_id)
-
-        cv2.rectangle(
-            image,
-            (x1, y1),
-            (x2, y2),
-            color,
-            thickness=BOX_THICKNESS
+        yolo_annotations = read_yolo_labels(
+            label_path,
+            draw_only_class_ids=args.draw_only_class_ids,
         )
 
-        if DRAW_LABELS:
-            class_name = class_names.get(class_id, f"class_{class_id}")
+        if len(yolo_annotations) == 0:
+            empty_label_files += 1
 
-            if DRAW_CONFIDENCE_IF_PRESENT and ann["confidence"] is not None:
-                label_text = f"{class_id}: {class_name} {ann['confidence']:.2f}"
-            else:
-                label_text = f"{class_id}: {class_name}"
+            if not args.save_images_with_empty_labels:
+                continue
 
-            draw_text_with_background(
-                image=image,
-                text=label_text,
-                x=x1,
-                y=y1,
-                color=color
+        for ann in yolo_annotations:
+            bbox = yolo_to_pixel_bbox(ann, img_width, img_height)
+
+            if bbox is None:
+                continue
+
+            class_id = ann["class_id"]
+            x1, y1, x2, y2 = bbox
+
+            color = get_color_for_class(class_id)
+
+            cv2.rectangle(
+                image,
+                (x1, y1),
+                (x2, y2),
+                color,
+                thickness=args.box_thickness,
             )
 
-        boxes_drawn += 1
+            if args.draw_labels:
+                class_name = class_names.get(class_id, f"class_{class_id}")
 
-    output_path = os.path.join(BB_OUTPUT_DIR, image_file_name)
-    cv2.imwrite(output_path, image)
+                if args.draw_confidence_if_present and ann["confidence"] is not None:
+                    label_text = (
+                        f"{class_id}: {class_name} {ann['confidence']:.2f}"
+                    )
+                else:
+                    label_text = f"{class_id}: {class_name}"
 
-    saved_images += 1
-    processed_images += 1
+                draw_text_with_background(
+                    cv2=cv2,
+                    image=image,
+                    text=label_text,
+                    x=x1,
+                    y=y1,
+                    color=color,
+                    text_scale=args.text_scale,
+                    text_thickness=args.text_thickness,
+                )
+
+            boxes_drawn += 1
+
+        output_path = bb_output_dir / image_file_name
+        cv2.imwrite(str(output_path), image)
+
+        saved_images += 1
+        processed_images += 1
+
+    print("")
+    print("Done.")
+    print(f"Processed images: {processed_images}")
+    print(f"Saved BB images: {saved_images}")
+    print(f"Boxes drawn: {boxes_drawn}")
+    print(f"Missing label files: {missing_label_files}")
+    print(f"Empty label files: {empty_label_files}")
+    print(f"Invalid/unreadable images: {invalid_images}")
+    print(f"BB inspection folder: {bb_output_dir}")
 
 
-print("")
-print("Done.")
-print(f"Processed images: {processed_images}")
-print(f"Saved BB images: {saved_images}")
-print(f"Boxes drawn: {boxes_drawn}")
-print(f"Missing label files: {missing_label_files}")
-print(f"Empty label files: {empty_label_files}")
-print(f"Invalid/unreadable images: {invalid_images}")
-print(f"BB inspection folder: {BB_OUTPUT_DIR}")
+if __name__ == "__main__":
+    main()

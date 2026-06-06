@@ -1,54 +1,29 @@
-import os
-import json
-import shutil
-import random
+import argparse
 import csv
+import json
+import os
+import random
+import shutil
 from collections import defaultdict
-from tqdm import tqdm
+
+try:
+    from tqdm import tqdm
+except ImportError:
+    def tqdm(iterable, **kwargs):
+        return iterable
 
 
 # ============================================================
-# PATH SETUP
+# DEFAULT SETTINGS
 # ============================================================
 
-PROCESSED_DIR = r"C:\Users\richm\Downloads\Cityscapes\processed"
+DEFAULT_FILTERED_FOLDER_NAME = "filtered_images"
+DEFAULT_CLEAR_FILTERED_FOLDER_ON_RUN = True
 
-IMAGES_DIR = os.path.join(PROCESSED_DIR, "cropped_images")
-ANNOTATIONS_FILE = os.path.join(PROCESSED_DIR, "cropped_annotations.json")
-
-# This folder will be created inside PROCESSED_DIR.
-# Images will be copied directly into this folder.
-FILTERED_FOLDER_NAME = "filtered_images"
-
-FILTERED_DIR = os.path.join(PROCESSED_DIR, FILTERED_FOLDER_NAME)
-FILTERED_ANNOTATIONS_FILE = os.path.join(FILTERED_DIR, "filtered_annotations.json")
-FILTERED_STATS_FILE = os.path.join(FILTERED_DIR, "filtered_stats.csv")
-
-# If True, delete the old filtered folder before creating the new subset.
-CLEAR_FILTERED_FOLDER_ON_RUN = True
-
-
-# ============================================================
-# MAIN SUBSET SETTINGS
-# ============================================================
-
-# Maximum number of images to keep in the final subset.
-# Use None if you want to keep all matching images.
-MAX_SELECTED_IMAGES = 3000
-
-# Random seed used only if SELECTION_MODE = "random".
-RANDOM_SEED = 42
-
-
-# ============================================================
-# CATEGORY GROUPS
-# ============================================================
+DEFAULT_MAX_SELECTED_IMAGES = 3000
+DEFAULT_RANDOM_SEED = 42
 
 # These are the person/pedestrian-related labels.
-#
-# This is important because your earlier crop-generation script treats
-# pedestrians as a broader group of labels, not just one single class.
-#
 # These labels may come from CityPersons and/or gtCoarse.
 PERSON_RELATED_LABELS = {
     "pedestrian",
@@ -62,7 +37,6 @@ PERSON_RELATED_LABELS = {
 }
 
 # Optional custom label set.
-# Use this if you want to count a different group of labels.
 CUSTOM_COUNT_LABELS = {
     "person",
     "rider",
@@ -73,104 +47,286 @@ CUSTOM_COUNT_LABELS = {
     "ridergroup",
 }
 
+DEFAULT_COUNT_LABEL_MODE = "person_related"
+DEFAULT_COUNT_FILTER_MODE = "none"
+DEFAULT_MIN_OBJECTS = 1
+DEFAULT_MAX_OBJECTS = 5
 
-# ============================================================
-# OBJECT COUNT FILTER SETTINGS
-# ============================================================
+DEFAULT_SELECTION_MODE = "most_overlap"
 
-# What objects should be counted?
-#
-# Options:
-#   "all"             -> count all annotations in each image
-#   "person_related"  -> count only PERSON_RELATED_LABELS
-#   "custom"          -> count only CUSTOM_COUNT_LABELS
-COUNT_LABEL_MODE = "person_related"
+DEFAULT_MIN_PERSON_BOXES_FOR_OVERLAP = 2
+DEFAULT_OVERLAP_IOU_THRESHOLD = 0.05
+DEFAULT_OVERLAP_OVER_SMALLER_THRESHOLD = 0.50
+DEFAULT_MIN_OVERLAPPING_PERSON_PAIRS = 1
 
-# How should the object count filter work?
-#
-# Options:
-#   "none"   -> no min/max object-count filtering
-#   "min"    -> keep images with object_count >= MIN_OBJECTS
-#   "max"    -> keep images with object_count <= MAX_OBJECTS
-#   "range"  -> keep images with MIN_OBJECTS <= object_count <= MAX_OBJECTS
-COUNT_FILTER_MODE = "none"
-
-# Used when COUNT_FILTER_MODE = "min" or "range".
-MIN_OBJECTS = 1
-
-# Used when COUNT_FILTER_MODE = "max" or "range".
-MAX_OBJECTS = 5
+DEFAULT_KEEP_ALL_CATEGORIES = True
+DEFAULT_REINDEX_IDS = False
 
 
 # ============================================================
-# SELECTION / SORTING MODE
+# ARGUMENTS
 # ============================================================
 
-# After filtering, how should images be selected?
-#
-# Options:
-#   "lowest_count"         -> select images with the fewest counted objects
-#   "highest_count"        -> select images with the most counted objects
-#   "most_overlap"         -> select images with the most overlapping person-related boxes
-#   "least_overlap"        -> select images with the least overlapping person-related boxes
-#   "random"               -> random selection after filtering
-#
-# For your specific question:
-#   Use "most_overlap" to select images with the most overlapping pedestrian/person boxes.
-SELECTION_MODE = "most_overlap"
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description=(
+            "Filter locally generated Cityscapes--Pedestrian crops using object-count "
+            "and person-overlap criteria."
+        )
+    )
+
+    parser.add_argument(
+        "--processed-dir",
+        default=os.environ.get("CITYSCAPES_PROCESSED_DIR"),
+        help=(
+            "Path to the local processed Cityscapes--Pedestrian folder. "
+            "Expected contents include cropped_images/ and cropped_annotations.json. "
+            "You may also set CITYSCAPES_PROCESSED_DIR."
+        ),
+    )
+
+    parser.add_argument(
+        "--images-dir",
+        default=None,
+        help=(
+            "Optional path to cropped_images. "
+            "Default: PROCESSED_DIR/cropped_images."
+        ),
+    )
+
+    parser.add_argument(
+        "--annotations-file",
+        default=None,
+        help=(
+            "Optional path to cropped_annotations.json. "
+            "Default: PROCESSED_DIR/cropped_annotations.json."
+        ),
+    )
+
+    parser.add_argument(
+        "--filtered-folder-name",
+        default=DEFAULT_FILTERED_FOLDER_NAME,
+        help="Folder created inside processed-dir for filtered images. Default: filtered_images.",
+    )
+
+    parser.add_argument(
+        "--filtered-dir",
+        default=None,
+        help=(
+            "Optional output folder for filtered images and filtered annotations. "
+            "Default: PROCESSED_DIR/FILTERED_FOLDER_NAME."
+        ),
+    )
+
+    parser.add_argument(
+        "--max-selected-images",
+        type=int,
+        default=DEFAULT_MAX_SELECTED_IMAGES,
+        help=(
+            "Maximum number of images to keep. Use -1 to keep all matching images. "
+            "Default: 3000."
+        ),
+    )
+
+    parser.add_argument(
+        "--random-seed",
+        type=int,
+        default=DEFAULT_RANDOM_SEED,
+        help="Random seed used only when --selection-mode random. Default: 42.",
+    )
+
+    parser.add_argument(
+        "--count-label-mode",
+        choices=["all", "person_related", "custom"],
+        default=DEFAULT_COUNT_LABEL_MODE,
+        help=(
+            "Which annotation labels should be counted for object-count filtering. "
+            "Default: person_related."
+        ),
+    )
+
+    parser.add_argument(
+        "--count-filter-mode",
+        choices=["none", "min", "max", "range"],
+        default=DEFAULT_COUNT_FILTER_MODE,
+        help="How object-count filtering should be applied. Default: none.",
+    )
+
+    parser.add_argument(
+        "--min-objects",
+        type=int,
+        default=DEFAULT_MIN_OBJECTS,
+        help="Minimum object count used for min/range filtering. Default: 1.",
+    )
+
+    parser.add_argument(
+        "--max-objects",
+        type=int,
+        default=DEFAULT_MAX_OBJECTS,
+        help="Maximum object count used for max/range filtering. Default: 5.",
+    )
+
+    parser.add_argument(
+        "--selection-mode",
+        choices=[
+            "lowest_count",
+            "highest_count",
+            "most_overlap",
+            "least_overlap",
+            "random",
+        ],
+        default=DEFAULT_SELECTION_MODE,
+        help="How to rank/select images after filtering. Default: most_overlap.",
+    )
+
+    parser.add_argument(
+        "--min-person-boxes-for-overlap",
+        type=int,
+        default=DEFAULT_MIN_PERSON_BOXES_FOR_OVERLAP,
+        help="Minimum number of person-related boxes required for overlap selection. Default: 2.",
+    )
+
+    parser.add_argument(
+        "--overlap-iou-threshold",
+        type=float,
+        default=DEFAULT_OVERLAP_IOU_THRESHOLD,
+        help="IoU threshold for considering two person boxes overlapping. Default: 0.05.",
+    )
+
+    parser.add_argument(
+        "--overlap-over-smaller-threshold",
+        type=float,
+        default=DEFAULT_OVERLAP_OVER_SMALLER_THRESHOLD,
+        help=(
+            "Intersection-over-smaller-box threshold for considering two person boxes "
+            "overlapping. Default: 0.50."
+        ),
+    )
+
+    parser.add_argument(
+        "--min-overlapping-person-pairs",
+        type=int,
+        default=DEFAULT_MIN_OVERLAPPING_PERSON_PAIRS,
+        help=(
+            "Minimum number of overlapping person-related box pairs required for "
+            "overlap-based selection. Default: 1."
+        ),
+    )
+
+    parser.add_argument(
+        "--keep-all-categories",
+        dest="keep_all_categories",
+        action="store_true",
+        default=DEFAULT_KEEP_ALL_CATEGORIES,
+        help="Keep all original categories in the filtered JSON. This is the default.",
+    )
+
+    parser.add_argument(
+        "--only-used-categories",
+        dest="keep_all_categories",
+        action="store_false",
+        help="Keep only categories used in the filtered annotations.",
+    )
+
+    parser.add_argument(
+        "--reindex-ids",
+        dest="reindex_ids",
+        action="store_true",
+        default=DEFAULT_REINDEX_IDS,
+        help="Rewrite image and annotation IDs from 1..N.",
+    )
+
+    parser.add_argument(
+        "--keep-original-ids",
+        dest="reindex_ids",
+        action="store_false",
+        help="Keep original image and annotation IDs. This is the default.",
+    )
+
+    parser.add_argument(
+        "--clear-filtered-folder",
+        dest="clear_filtered_folder_on_run",
+        action="store_true",
+        default=DEFAULT_CLEAR_FILTERED_FOLDER_ON_RUN,
+        help="Delete the old filtered folder before creating the new subset. This is the default.",
+    )
+
+    parser.add_argument(
+        "--no-clear-filtered-folder",
+        dest="clear_filtered_folder_on_run",
+        action="store_false",
+        help="Do not delete the old filtered folder before creating the new subset.",
+    )
+
+    return parser.parse_args()
 
 
 # ============================================================
-# PERSON-OVERLAP SETTINGS
+# PATH RESOLUTION AND VALIDATION
 # ============================================================
 
-# For overlap scoring, we look only at person-related labels.
-OVERLAP_LABELS = PERSON_RELATED_LABELS
+def resolve_paths(args):
+    if not args.processed_dir and not args.images_dir and not args.annotations_file:
+        raise RuntimeError(
+            "No input path was provided. Pass --processed-dir or provide both "
+            "--images-dir and --annotations-file."
+        )
 
-# An image must have at least this many person-related annotations
-# to be considered for overlap-based selection.
-MIN_PERSON_BOXES_FOR_OVERLAP = 2
+    processed_dir = (
+        os.path.abspath(args.processed_dir)
+        if args.processed_dir
+        else None
+    )
 
-# A pair of person boxes is considered overlapping if:
-#
-#   IoU >= OVERLAP_IOU_THRESHOLD
-#
-# OR:
-#
-#   intersection_area / smaller_box_area >= OVERLAP_OVER_SMALLER_THRESHOLD
-#
-# The second condition is useful because one box may be much larger
-# than another, for example:
-#
-#   CityPersons pedestrian box
-#   gtCoarse person polygon converted to bbox
-#
-# In that case, the smaller box may be mostly inside the larger box,
-# even if normal IoU is not very high.
-OVERLAP_IOU_THRESHOLD = 0.05
-OVERLAP_OVER_SMALLER_THRESHOLD = 0.50
+    if args.images_dir:
+        images_dir = os.path.abspath(args.images_dir)
+    else:
+        images_dir = os.path.join(processed_dir, "cropped_images")
 
-# If using SELECTION_MODE = "most_overlap", this controls whether
-# images with zero overlapping person pairs are allowed.
-#
-# Use 1 if you only want images that actually contain overlapping
-# person-related boxes.
-#
-# Use 0 if you want all images ranked by overlap, even if some have no overlap.
-MIN_OVERLAPPING_PERSON_PAIRS = 1
+    if args.annotations_file:
+        annotations_file = os.path.abspath(args.annotations_file)
+    else:
+        annotations_file = os.path.join(processed_dir, "cropped_annotations.json")
+
+    if args.filtered_dir:
+        filtered_dir = os.path.abspath(args.filtered_dir)
+    else:
+        if processed_dir is None:
+            raise RuntimeError(
+                "No --filtered-dir was provided and --processed-dir is unavailable."
+            )
+        filtered_dir = os.path.join(processed_dir, args.filtered_folder_name)
+
+    filtered_annotations_file = os.path.join(
+        filtered_dir,
+        "filtered_annotations.json",
+    )
+    filtered_stats_file = os.path.join(
+        filtered_dir,
+        "filtered_stats.csv",
+    )
+
+    return {
+        "processed_dir": processed_dir,
+        "images_dir": images_dir,
+        "annotations_file": annotations_file,
+        "filtered_dir": filtered_dir,
+        "filtered_annotations_file": filtered_annotations_file,
+        "filtered_stats_file": filtered_stats_file,
+    }
 
 
-# ============================================================
-# OUTPUT JSON SETTINGS
-# ============================================================
+def validate_inputs(paths):
+    images_dir = paths["images_dir"]
+    annotations_file = paths["annotations_file"]
 
-# Keep all original categories in the filtered JSON.
-# Usually this is safest for COCO-style training.
-KEEP_ALL_CATEGORIES = True
+    if not os.path.isdir(images_dir):
+        raise FileNotFoundError(f"Images directory does not exist: {images_dir}")
 
-# If True, rewrite image IDs and annotation IDs from 1..N.
-# If False, keep the original IDs from cropped_annotations.json.
-REINDEX_IDS = False
+    if not os.path.isfile(annotations_file):
+        raise FileNotFoundError(
+            f"Cropped annotations JSON does not exist: {annotations_file}"
+        )
 
 
 # ============================================================
@@ -222,6 +378,7 @@ def get_annotation_label(ann, id_to_name):
         return id_to_name[category_id]
 
     category_id_str = str(category_id)
+
     if category_id_str in id_to_name:
         return id_to_name[category_id_str]
 
@@ -232,42 +389,46 @@ def get_annotation_label(ann, id_to_name):
     except Exception:
         pass
 
-    # Fallback: maybe category_id is already a label like "person".
     return category_id_str
 
 
-def get_count_label_set():
+def get_count_label_set(count_label_mode):
     """Return which labels should be counted for object-count filtering."""
-    if COUNT_LABEL_MODE == "all":
+    if count_label_mode == "all":
         return None
 
-    if COUNT_LABEL_MODE == "person_related":
+    if count_label_mode == "person_related":
         return {clean_label(x) for x in PERSON_RELATED_LABELS}
 
-    if COUNT_LABEL_MODE == "custom":
+    if count_label_mode == "custom":
         return {clean_label(x) for x in CUSTOM_COUNT_LABELS}
 
     raise ValueError(
-        "Invalid COUNT_LABEL_MODE. Use 'all', 'person_related', or 'custom'."
+        "Invalid count_label_mode. Use 'all', 'person_related', or 'custom'."
     )
 
 
-def passes_object_count_filter(object_count):
-    """Apply min/max/range object count filter."""
-    if COUNT_FILTER_MODE == "none":
+def passes_object_count_filter(
+    object_count,
+    count_filter_mode,
+    min_objects,
+    max_objects,
+):
+    """Apply min/max/range object-count filter."""
+    if count_filter_mode == "none":
         return True
 
-    if COUNT_FILTER_MODE == "min":
-        return object_count >= MIN_OBJECTS
+    if count_filter_mode == "min":
+        return object_count >= min_objects
 
-    if COUNT_FILTER_MODE == "max":
-        return object_count <= MAX_OBJECTS
+    if count_filter_mode == "max":
+        return object_count <= max_objects
 
-    if COUNT_FILTER_MODE == "range":
-        return MIN_OBJECTS <= object_count <= MAX_OBJECTS
+    if count_filter_mode == "range":
+        return min_objects <= object_count <= max_objects
 
     raise ValueError(
-        "Invalid COUNT_FILTER_MODE. Use 'none', 'min', 'max', or 'range'."
+        "Invalid count_filter_mode. Use 'none', 'min', 'max', or 'range'."
     )
 
 
@@ -276,12 +437,12 @@ def bbox_area(bbox):
     if bbox is None or len(bbox) != 4:
         return 0.0
 
-    _, _, w, h = bbox
+    _, _, width, height = bbox
 
-    if w <= 0 or h <= 0:
+    if width <= 0 or height <= 0:
         return 0.0
 
-    return float(w) * float(h)
+    return float(width) * float(height)
 
 
 def bbox_intersection_area(box_a, box_b):
@@ -304,10 +465,10 @@ def bbox_intersection_area(box_a, box_b):
     inter_right = min(a_right, b_right)
     inter_bottom = min(a_bottom, b_bottom)
 
-    inter_w = max(0.0, inter_right - inter_left)
-    inter_h = max(0.0, inter_bottom - inter_top)
+    inter_width = max(0.0, inter_right - inter_left)
+    inter_height = max(0.0, inter_bottom - inter_top)
 
-    return inter_w * inter_h
+    return inter_width * inter_height
 
 
 def bbox_iou(box_a, box_b):
@@ -332,7 +493,6 @@ def bbox_overlap_over_smaller(box_a, box_b):
     Calculate intersection_area / smaller_box_area.
 
     This is useful when one box is much larger than the other.
-    For duplicate or overlapping person boxes, this can be more useful than IoU.
     """
     area_a = bbox_area(box_a)
     area_b = bbox_area(box_b)
@@ -349,12 +509,13 @@ def bbox_overlap_over_smaller(box_a, box_b):
     return inter_area / smaller_area
 
 
-def compute_person_overlap_stats(person_annotations):
+def compute_person_overlap_stats(
+    person_annotations,
+    overlap_iou_threshold,
+    overlap_over_smaller_threshold,
+):
     """
     Compute overlap statistics between all person-related boxes in one image.
-
-    This is what lets us select images with the most overlapping pedestrian /
-    person / rider / person-group boxes.
     """
     total_pairs = 0
     overlapping_pair_count = 0
@@ -363,12 +524,12 @@ def compute_person_overlap_stats(person_annotations):
     max_iou = 0.0
     max_overlap_over_smaller = 0.0
 
-    n = len(person_annotations)
+    number_of_annotations = len(person_annotations)
 
-    for i in range(n):
+    for i in range(number_of_annotations):
         box_a = person_annotations[i].get("bbox", [0, 0, 0, 0])
 
-        for j in range(i + 1, n):
+        for j in range(i + 1, number_of_annotations):
             box_b = person_annotations[j].get("bbox", [0, 0, 0, 0])
 
             total_pairs += 1
@@ -380,14 +541,12 @@ def compute_person_overlap_stats(person_annotations):
             max_overlap_over_smaller = max(max_overlap_over_smaller, over_smaller)
 
             is_overlapping_pair = (
-                iou >= OVERLAP_IOU_THRESHOLD or
-                over_smaller >= OVERLAP_OVER_SMALLER_THRESHOLD
+                iou >= overlap_iou_threshold
+                or over_smaller >= overlap_over_smaller_threshold
             )
 
             if is_overlapping_pair:
                 overlapping_pair_count += 1
-
-                # Use the stronger overlap measure as the score contribution.
                 overlap_score_sum += max(iou, over_smaller)
 
     if overlapping_pair_count > 0:
@@ -405,9 +564,9 @@ def compute_person_overlap_stats(person_annotations):
     }
 
 
-def sort_image_stats(image_stats):
-    """Sort candidate images according to SELECTION_MODE."""
-    if SELECTION_MODE == "lowest_count":
+def sort_image_stats(image_stats, selection_mode, random_seed):
+    """Sort candidate images according to selection mode."""
+    if selection_mode == "lowest_count":
         return sorted(
             image_stats,
             key=lambda x: (
@@ -418,7 +577,7 @@ def sort_image_stats(image_stats):
             ),
         )
 
-    if SELECTION_MODE == "highest_count":
+    if selection_mode == "highest_count":
         return sorted(
             image_stats,
             key=lambda x: (
@@ -429,7 +588,7 @@ def sort_image_stats(image_stats):
             ),
         )
 
-    if SELECTION_MODE == "most_overlap":
+    if selection_mode == "most_overlap":
         return sorted(
             image_stats,
             key=lambda x: (
@@ -443,7 +602,7 @@ def sort_image_stats(image_stats):
             ),
         )
 
-    if SELECTION_MODE == "least_overlap":
+    if selection_mode == "least_overlap":
         return sorted(
             image_stats,
             key=lambda x: (
@@ -457,13 +616,13 @@ def sort_image_stats(image_stats):
             ),
         )
 
-    if SELECTION_MODE == "random":
+    if selection_mode == "random":
         output = list(image_stats)
-        random.Random(RANDOM_SEED).shuffle(output)
+        random.Random(random_seed).shuffle(output)
         return output
 
     raise ValueError(
-        "Invalid SELECTION_MODE. Use 'lowest_count', 'highest_count', "
+        "Invalid selection_mode. Use 'lowest_count', 'highest_count', "
         "'most_overlap', 'least_overlap', or 'random'."
     )
 
@@ -492,9 +651,9 @@ def write_stats_csv(stats_file, selected_stats):
             writer.writerow({key: row.get(key, "") for key in fieldnames})
 
 
-def build_filtered_categories(coco_data, filtered_annotations):
+def build_filtered_categories(coco_data, filtered_annotations, keep_all_categories):
     """Return category list for the filtered JSON."""
-    if KEEP_ALL_CATEGORIES:
+    if keep_all_categories:
         return coco_data.get("categories", [])
 
     used_category_ids = {ann.get("category_id") for ann in filtered_annotations}
@@ -505,9 +664,15 @@ def build_filtered_categories(coco_data, filtered_annotations):
     ]
 
 
-def maybe_reindex_coco(filtered_images, filtered_annotations, filtered_categories, coco_data):
+def maybe_reindex_coco(
+    filtered_images,
+    filtered_annotations,
+    filtered_categories,
+    coco_data,
+    reindex_ids,
+):
     """Optionally reindex image and annotation IDs."""
-    if not REINDEX_IDS:
+    if not reindex_ids:
         return {
             "info": coco_data.get("info", {}),
             "licenses": coco_data.get("licenses", []),
@@ -519,26 +684,26 @@ def maybe_reindex_coco(filtered_images, filtered_annotations, filtered_categorie
     old_to_new_image_id = {}
     new_images = []
 
-    for new_image_id, img in enumerate(filtered_images, start=1):
-        old_image_id = img["id"]
+    for new_image_id, image in enumerate(filtered_images, start=1):
+        old_image_id = image["id"]
         old_to_new_image_id[old_image_id] = new_image_id
 
-        new_img = dict(img)
-        new_img["id"] = new_image_id
-        new_images.append(new_img)
+        new_image = dict(image)
+        new_image["id"] = new_image_id
+        new_images.append(new_image)
 
     new_annotations = []
 
-    for new_ann_id, ann in enumerate(filtered_annotations, start=1):
-        old_image_id = ann["image_id"]
+    for new_annotation_id, annotation in enumerate(filtered_annotations, start=1):
+        old_image_id = annotation["image_id"]
 
         if old_image_id not in old_to_new_image_id:
             continue
 
-        new_ann = dict(ann)
-        new_ann["id"] = new_ann_id
-        new_ann["image_id"] = old_to_new_image_id[old_image_id]
-        new_annotations.append(new_ann)
+        new_annotation = dict(annotation)
+        new_annotation["id"] = new_annotation_id
+        new_annotation["image_id"] = old_to_new_image_id[old_image_id]
+        new_annotations.append(new_annotation)
 
     return {
         "info": coco_data.get("info", {}),
@@ -550,211 +715,247 @@ def maybe_reindex_coco(filtered_images, filtered_annotations, filtered_categorie
 
 
 # ============================================================
-# MAIN SCRIPT
+# MAIN
 # ============================================================
 
-print("Loading annotations...")
+def main():
+    args = parse_args()
+    paths = resolve_paths(args)
+    validate_inputs(paths)
 
-with open(ANNOTATIONS_FILE, "r", encoding="utf-8") as f:
-    coco_data = json.load(f)
+    images_dir = paths["images_dir"]
+    annotations_file = paths["annotations_file"]
+    filtered_dir = paths["filtered_dir"]
+    filtered_annotations_file = paths["filtered_annotations_file"]
+    filtered_stats_file = paths["filtered_stats_file"]
 
-images = coco_data.get("images", [])
-annotations = coco_data.get("annotations", [])
-categories = coco_data.get("categories", [])
+    max_selected_images = args.max_selected_images
+    if max_selected_images is not None and max_selected_images < 0:
+        max_selected_images = None
 
-print(f"Found {len(images)} images.")
-print(f"Found {len(annotations)} annotations.")
-print(f"Found {len(categories)} categories.")
+    print("Cityscapes--Pedestrian crop filtering")
+    print("=====================================")
+    print(f"Processed dir:           {paths['processed_dir']}")
+    print(f"Images dir:              {images_dir}")
+    print(f"Annotations file:        {annotations_file}")
+    print(f"Filtered dir:            {filtered_dir}")
+    print(f"Filtered annotations:    {filtered_annotations_file}")
+    print(f"Filtered stats CSV:      {filtered_stats_file}")
+    print(f"Max selected images:     {max_selected_images}")
+    print(f"Count label mode:        {args.count_label_mode}")
+    print(f"Count filter mode:       {args.count_filter_mode}")
+    print(f"Selection mode:          {args.selection_mode}")
+    print(f"Clear filtered folder:   {args.clear_filtered_folder_on_run}")
 
-id_to_name = build_category_lookup(coco_data)
+    print("\nLoading annotations...")
 
-count_label_set = get_count_label_set()
-overlap_label_set = {clean_label(x) for x in OVERLAP_LABELS}
+    with open(annotations_file, "r", encoding="utf-8") as f:
+        coco_data = json.load(f)
 
-images_by_id = {img["id"]: img for img in images}
+    images = coco_data.get("images", [])
+    annotations = coco_data.get("annotations", [])
+    categories = coco_data.get("categories", [])
 
-annotations_by_image_id = defaultdict(list)
-for ann in annotations:
-    annotations_by_image_id[ann["image_id"]].append(ann)
+    print(f"Found {len(images)} images.")
+    print(f"Found {len(annotations)} annotations.")
+    print(f"Found {len(categories)} categories.")
 
+    id_to_name = build_category_lookup(coco_data)
 
-# ============================================================
-# CALCULATE PER-IMAGE STATS
-# ============================================================
+    count_label_set = get_count_label_set(args.count_label_mode)
+    overlap_label_set = {clean_label(x) for x in PERSON_RELATED_LABELS}
 
-print("\nCalculating per-image object counts and overlap scores...")
+    images_by_id = {img["id"]: img for img in images}
 
-all_image_stats = []
+    annotations_by_image_id = defaultdict(list)
+    for ann in annotations:
+        annotations_by_image_id[ann["image_id"]].append(ann)
 
-for img in tqdm(images, desc="Analyzing images"):
-    image_id = img["id"]
-    file_name = img.get("file_name", "")
+    # ============================================================
+    # CALCULATE PER-IMAGE STATS
+    # ============================================================
 
-    image_annotations = annotations_by_image_id.get(image_id, [])
+    print("\nCalculating per-image object counts and overlap scores...")
 
-    total_annotation_count = len(image_annotations)
-    counted_object_count = 0
-    person_related_annotations = []
+    all_image_stats = []
 
-    for ann in image_annotations:
-        label = clean_label(get_annotation_label(ann, id_to_name))
+    for img in tqdm(images, desc="Analyzing images"):
+        image_id = img["id"]
+        file_name = img.get("file_name", "")
 
-        # Count object depending on COUNT_LABEL_MODE.
-        if count_label_set is None:
-            counted_object_count += 1
-        elif label in count_label_set:
-            counted_object_count += 1
+        image_annotations = annotations_by_image_id.get(image_id, [])
 
-        # Collect boxes for overlap scoring.
-        if label in overlap_label_set:
-            person_related_annotations.append(ann)
+        total_annotation_count = len(image_annotations)
+        counted_object_count = 0
+        person_related_annotations = []
 
-    overlap_stats = compute_person_overlap_stats(person_related_annotations)
+        for ann in image_annotations:
+            label = clean_label(get_annotation_label(ann, id_to_name))
 
-    row = {
-        "image_id": image_id,
-        "file_name": file_name,
-        "total_annotation_count": total_annotation_count,
-        "counted_object_count": counted_object_count,
-        "person_related_count": len(person_related_annotations),
-    }
+            if count_label_set is None:
+                counted_object_count += 1
+            elif label in count_label_set:
+                counted_object_count += 1
 
-    row.update(overlap_stats)
+            if label in overlap_label_set:
+                person_related_annotations.append(ann)
 
-    all_image_stats.append(row)
+        overlap_stats = compute_person_overlap_stats(
+            person_annotations=person_related_annotations,
+            overlap_iou_threshold=args.overlap_iou_threshold,
+            overlap_over_smaller_threshold=args.overlap_over_smaller_threshold,
+        )
 
+        row = {
+            "image_id": image_id,
+            "file_name": file_name,
+            "total_annotation_count": total_annotation_count,
+            "counted_object_count": counted_object_count,
+            "person_related_count": len(person_related_annotations),
+        }
 
-# ============================================================
-# APPLY FILTERS
-# ============================================================
+        row.update(overlap_stats)
 
-print("\nApplying filters...")
+        all_image_stats.append(row)
 
-candidate_stats = []
+    # ============================================================
+    # APPLY FILTERS
+    # ============================================================
 
-overlap_selection = SELECTION_MODE in {"most_overlap", "least_overlap"}
+    print("\nApplying filters...")
 
-for row in all_image_stats:
-    # Min/max/range object count filter.
-    if not passes_object_count_filter(row["counted_object_count"]):
-        continue
+    candidate_stats = []
 
-    # Extra requirements for overlap-based selection.
-    if overlap_selection:
-        if row["person_related_count"] < MIN_PERSON_BOXES_FOR_OVERLAP:
+    overlap_selection = args.selection_mode in {"most_overlap", "least_overlap"}
+
+    for row in all_image_stats:
+        if not passes_object_count_filter(
+            object_count=row["counted_object_count"],
+            count_filter_mode=args.count_filter_mode,
+            min_objects=args.min_objects,
+            max_objects=args.max_objects,
+        ):
             continue
 
-        if row["overlapping_person_pair_count"] < MIN_OVERLAPPING_PERSON_PAIRS:
+        if overlap_selection:
+            if row["person_related_count"] < args.min_person_boxes_for_overlap:
+                continue
+
+            if row["overlapping_person_pair_count"] < args.min_overlapping_person_pairs:
+                continue
+
+        candidate_stats.append(row)
+
+    print(f"Candidate images after filtering: {len(candidate_stats)}")
+
+    # ============================================================
+    # SORT AND SELECT FINAL IMAGES
+    # ============================================================
+
+    sorted_stats = sort_image_stats(
+        image_stats=candidate_stats,
+        selection_mode=args.selection_mode,
+        random_seed=args.random_seed,
+    )
+
+    if max_selected_images is None:
+        selected_stats = sorted_stats
+    else:
+        selected_stats = sorted_stats[:max_selected_images]
+
+    selected_image_ids = {row["image_id"] for row in selected_stats}
+
+    print(f"Selected images before copy check: {len(selected_image_ids)}")
+
+    # ============================================================
+    # CREATE OUTPUT FOLDER
+    # ============================================================
+
+    if args.clear_filtered_folder_on_run and os.path.isdir(filtered_dir):
+        print(f"\nClearing old filtered folder: {filtered_dir}")
+        shutil.rmtree(filtered_dir)
+
+    os.makedirs(filtered_dir, exist_ok=True)
+
+    # ============================================================
+    # COPY SELECTED IMAGES
+    # ============================================================
+
+    print("\nCopying selected images...")
+
+    filtered_images = []
+    copied_image_ids = set()
+    copied_stats = []
+
+    missing_count = 0
+
+    for row in tqdm(selected_stats, desc="Copying images"):
+        image_id = row["image_id"]
+        image = images_by_id.get(image_id)
+
+        if image is None:
             continue
 
-    candidate_stats.append(row)
+        file_name = image.get("file_name", "")
 
-print(f"Candidate images after filtering: {len(candidate_stats)}")
+        source_path = os.path.join(images_dir, file_name)
+        destination_path = os.path.join(filtered_dir, file_name)
 
+        if not os.path.exists(source_path):
+            missing_count += 1
+            continue
 
-# ============================================================
-# SORT AND SELECT FINAL IMAGES
-# ============================================================
+        shutil.copy2(source_path, destination_path)
 
-sorted_stats = sort_image_stats(candidate_stats)
+        filtered_images.append(image)
+        copied_image_ids.add(image_id)
+        copied_stats.append(row)
 
-if MAX_SELECTED_IMAGES is None:
-    selected_stats = sorted_stats
-else:
-    selected_stats = sorted_stats[:MAX_SELECTED_IMAGES]
+    print(f"Copied {len(filtered_images)} images.")
+    print(f"Missing source images: {missing_count}")
 
-selected_image_ids = {row["image_id"] for row in selected_stats}
+    # ============================================================
+    # CREATE FILTERED ANNOTATIONS
+    # ============================================================
 
-print(f"Selected images before copy check: {len(selected_image_ids)}")
+    filtered_annotations = [
+        ann for ann in annotations
+        if ann["image_id"] in copied_image_ids
+    ]
 
+    filtered_categories = build_filtered_categories(
+        coco_data=coco_data,
+        filtered_annotations=filtered_annotations,
+        keep_all_categories=args.keep_all_categories,
+    )
 
-# ============================================================
-# CREATE OUTPUT FOLDER
-# ============================================================
+    filtered_coco = maybe_reindex_coco(
+        filtered_images=filtered_images,
+        filtered_annotations=filtered_annotations,
+        filtered_categories=filtered_categories,
+        coco_data=coco_data,
+        reindex_ids=args.reindex_ids,
+    )
 
-if CLEAR_FILTERED_FOLDER_ON_RUN and os.path.isdir(FILTERED_DIR):
-    print(f"\nClearing old filtered folder: {FILTERED_DIR}")
-    shutil.rmtree(FILTERED_DIR)
+    # ============================================================
+    # SAVE OUTPUTS
+    # ============================================================
 
-os.makedirs(FILTERED_DIR, exist_ok=True)
+    with open(filtered_annotations_file, "w", encoding="utf-8") as f:
+        json.dump(filtered_coco, f, indent=4)
 
+    write_stats_csv(filtered_stats_file, copied_stats)
 
-# ============================================================
-# COPY SELECTED IMAGES
-# ============================================================
-
-print("\nCopying selected images...")
-
-filtered_images = []
-copied_image_ids = set()
-copied_stats = []
-
-selected_stats_by_image_id = {row["image_id"]: row for row in selected_stats}
-
-missing_count = 0
-
-# Copy in selected sorted order, not random set order.
-for row in tqdm(selected_stats, desc="Copying images"):
-    image_id = row["image_id"]
-    img = images_by_id.get(image_id)
-
-    if img is None:
-        continue
-
-    file_name = img.get("file_name", "")
-
-    source_path = os.path.join(IMAGES_DIR, file_name)
-    dest_path = os.path.join(FILTERED_DIR, file_name)
-
-    if not os.path.exists(source_path):
-        missing_count += 1
-        continue
-
-    shutil.copy2(source_path, dest_path)
-
-    filtered_images.append(img)
-    copied_image_ids.add(image_id)
-    copied_stats.append(row)
+    print("\nDone.")
+    print(f"Filtered images folder: {filtered_dir}")
+    print(f"Filtered annotations: {filtered_annotations_file}")
+    print(f"Stats CSV: {filtered_stats_file}")
+    print(f"Images copied: {len(filtered_images)}")
+    print(f"Annotations kept: {len(filtered_annotations)}")
 
 
-print(f"Copied {len(filtered_images)} images.")
-print(f"Missing source images: {missing_count}")
-
-
-# ============================================================
-# CREATE FILTERED ANNOTATIONS
-# ============================================================
-
-filtered_annotations = [
-    ann for ann in annotations
-    if ann["image_id"] in copied_image_ids
-]
-
-filtered_categories = build_filtered_categories(coco_data, filtered_annotations)
-
-filtered_coco = maybe_reindex_coco(
-    filtered_images=filtered_images,
-    filtered_annotations=filtered_annotations,
-    filtered_categories=filtered_categories,
-    coco_data=coco_data,
-)
-
-
-# ============================================================
-# SAVE OUTPUTS
-# ============================================================
-
-with open(FILTERED_ANNOTATIONS_FILE, "w", encoding="utf-8") as f:
-    json.dump(filtered_coco, f, indent=4)
-
-write_stats_csv(FILTERED_STATS_FILE, copied_stats)
-
-print("\nDone.")
-print(f"Filtered images folder: {FILTERED_DIR}")
-print(f"Filtered annotations: {FILTERED_ANNOTATIONS_FILE}")
-print(f"Stats CSV: {FILTERED_STATS_FILE}")
-print(f"Images copied: {len(filtered_images)}")
-print(f"Annotations kept: {len(filtered_annotations)}")
+if __name__ == "__main__":
+    main()
 
 
 # ============================================================
@@ -764,43 +965,43 @@ print(f"Annotations kept: {len(filtered_annotations)}")
 # Example 1:
 # Select images with the most overlapping pedestrian/person boxes:
 #
-#   COUNT_LABEL_MODE = "person_related"
-#   COUNT_FILTER_MODE = "none"
-#   SELECTION_MODE = "most_overlap"
-#   MIN_OVERLAPPING_PERSON_PAIRS = 1
+#   --count-label-mode person_related
+#   --count-filter-mode none
+#   --selection-mode most_overlap
+#   --min-overlapping-person-pairs 1
 #
 #
 # Example 2:
 # Select images with at least 4 person-related objects:
 #
-#   COUNT_LABEL_MODE = "person_related"
-#   COUNT_FILTER_MODE = "min"
-#   MIN_OBJECTS = 4
-#   SELECTION_MODE = "highest_count"
+#   --count-label-mode person_related
+#   --count-filter-mode min
+#   --min-objects 4
+#   --selection-mode highest_count
 #
 #
 # Example 3:
 # Select images with at most 2 person-related objects:
 #
-#   COUNT_LABEL_MODE = "person_related"
-#   COUNT_FILTER_MODE = "max"
-#   MAX_OBJECTS = 2
-#   SELECTION_MODE = "lowest_count"
+#   --count-label-mode person_related
+#   --count-filter-mode max
+#   --max-objects 2
+#   --selection-mode lowest_count
 #
 #
 # Example 4:
 # Select images with between 2 and 6 person-related objects:
 #
-#   COUNT_LABEL_MODE = "person_related"
-#   COUNT_FILTER_MODE = "range"
-#   MIN_OBJECTS = 2
-#   MAX_OBJECTS = 6
-#   SELECTION_MODE = "highest_count"
+#   --count-label-mode person_related
+#   --count-filter-mode range
+#   --min-objects 2
+#   --max-objects 6
+#   --selection-mode highest_count
 #
 #
 # Example 5:
 # Select images with the most total annotations, not just person annotations:
 #
-#   COUNT_LABEL_MODE = "all"
-#   COUNT_FILTER_MODE = "none"
-#   SELECTION_MODE = "highest_count"
+#   --count-label-mode all
+#   --count-filter-mode none
+#   --selection-mode highest_count
