@@ -392,24 +392,35 @@ pip install -r coco_pottedplant/scripts/requirements_coco.txt
 
 ---
 
-## Citation
+## How to cite
 
-Citation metadata is provided in:
+If you use this dataset collection, repository, scripts, manifests, or annotation tables, please cite the associated paper:
+
+```bibtex
+@misc{marian2026objectcentricdatasetresourcesconstraineddata,
+  title={Object-Centric Dataset Resources for Constrained-Data Image Generation and Augmentation},
+  author={Vasile Marian and Yong-Bin Kang and Alexander Buddery},
+  year={2026},
+  eprint={2606.21113},
+  archivePrefix={arXiv},
+  primaryClass={cs.CV},
+  url={https://arxiv.org/abs/2606.21113}
+}
+```
+
+The archived dataset release is available on Zenodo:
+
+```text
+https://doi.org/10.5281/zenodo.20573001
+```
+
+Citation metadata is also provided in:
 
 ```text
 CITATION.cff
 ```
 
-DOI:
-
-```text
-https://doi.org/10.5281/zenodo.20340519
-```
-
-A DOI-backed archival release is prepared through Zenodo.
-
 ---
-
 ## License and notices
 
 Because the three subsets have different provenance and release conditions, licensing and redistribution notices are documented separately:
