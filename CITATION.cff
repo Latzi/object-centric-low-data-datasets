@@ -1,6 +1,6 @@
 cff-version: 1.2.0
-title: "Object-Centric Low-Data Datasets"
-message: "If you use this dataset collection, please cite the associated paper, repository release, and DOI-backed archival release."
+message: "If you use this dataset collection, repository, scripts, manifests, or annotation tables, please cite the associated paper."
+title: "Object-Centric Dataset Resources for Constrained-Data Image Generation and Augmentation"
 type: dataset
 
 authors:
@@ -13,19 +13,31 @@ authors:
 
 repository-code: "https://github.com/Latzi/object-centric-low-data-datasets"
 url: "https://github.com/Latzi/object-centric-low-data-datasets"
-doi: "10.5281/zenodo.20340519"
+doi: "10.5281/zenodo.20573001"
+version: "0.1.1"
 
-abstract: "A mixed-release collection of object-centric datasets for low-data image generation and augmentation, including TrafficSigns, Cityscapes--Pedestrian, and COCO PottedPlant. TrafficSigns is released directly with images and YOLO annotations. Cityscapes--Pedestrian and COCO PottedPlant are released through reconstruction-first public artifacts including scripts, manifests, per-box annotation CSVs, metadata, checksums, and documentation."
+abstract: "A mixed-release collection of object-centric dataset resources for constrained-data image generation and augmentation, including TrafficSigns, Cityscapes--Pedestrian, and COCO PottedPlant. TrafficSigns is released directly with images and YOLO annotations. Cityscapes--Pedestrian and COCO PottedPlant are released through public reconstruction assets including scripts, manifests, per-box annotation CSVs, metadata, checksums, and documentation."
 
 keywords:
   - object-centric datasets
+  - constrained-data generation
   - low-data generation
-  - data augmentation
-  - generative modelling
+  - image generation
+  - synthetic data augmentation
   - computer vision
   - YOLO annotations
   - dataset resource
 
-license: "CC-BY-4.0"
-version: "0.1.0"
-date-released: "2026-05-22"
+preferred-citation:
+  type: generic
+  title: "Object-Centric Dataset Resources for Constrained-Data Image Generation and Augmentation"
+  authors:
+    - family-names: "Marian"
+      given-names: "Vasile"
+    - family-names: "Kang"
+      given-names: "Yong-Bin"
+    - family-names: "Buddery"
+      given-names: "Alexander"
+  year: 2026
+  doi: "10.48550/arXiv.2606.21113"
+  url: "https://arxiv.org/abs/2606.21113"
